@@ -12,29 +12,34 @@ class Tile
 private:
 
 public:
-    static uint_fast16_t indexNumber;
-    struct Dirs
-    {
-        Tile* north{ nullptr };
-        Tile* east{ nullptr };
-        Tile* south{ nullptr };
-        Tile* west{ nullptr };
-    };
-    
-    uint_fast16_t index{ 0 };
-    Dirs toThe;
+	static uint_fast16_t indexNumber;
+	struct Dirs
+	{
+		Tile* north{ nullptr };
+		Tile* east{ nullptr };
+		Tile* south{ nullptr };
+		Tile* west{ nullptr };
+	};
 
-    Tile(Dirs toThe = Dirs())
-        : toThe(toThe)
-    {
-        index = indexNumber++;
-    }
+	uint_fast16_t index{ 0 };
+	Dirs dirs;
 
-    friend auto operator<<(std::ostream& os, Tile const& tile) -> std::ostream& {
-        return os << "Tile " << tile.index << " {"
-            << tile.toThe.north << "↕" << tile.toThe.south << ", "
-            << tile.toThe.west << "↔" << tile.toThe.east << "}";
-    }
+	Tile(Dirs dirs = Dirs())
+		: dirs(dirs)
+	{
+		index = indexNumber++;
+	}
+
+	friend auto operator<<(std::ostream& os, Dirs const& dirs) -> std::ostream& {
+		return os << "{"
+			<< dirs.north << "↕" << dirs.south << ", "
+			<< dirs.west << "↔" << dirs.east
+			<< "}";
+	}
+
+	friend auto operator<<(std::ostream& os, Tile const& tile) -> std::ostream& {
+		return os << "Tile " << tile.index << " " << tile.dirs;
+	}
 };
 uint_fast16_t Tile::indexNumber = 0;
 
@@ -43,17 +48,17 @@ uint_fast16_t Tile::indexNumber = 0;
 
 int main()
 {
-    using namespace std;
+	using namespace std;
 
-    SetConsoleOutputCP(CP_UTF8);
+	SetConsoleOutputCP(CP_UTF8);
 
-    cout << "⌛ Generating...\n";
-    Tile tile = Tile();
-    cout << "tile: " << tile << "\n";
-    
-    string command;
-    do {
-        getline(cin, command);
-        cout << "> " << command << "\n";
-    } while (command != "q");
+	cout << "⌛ Generating...\n";
+	Tile tile = Tile();
+	cout << "tile: " << tile << "\n";
+
+	string command;
+	do {
+		getline(cin, command);
+		cout << "> " << command << "\n";
+	} while (command != "q");
 }
