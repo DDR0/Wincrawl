@@ -3,7 +3,9 @@
 #include <cassert>
 #include <vector>
 
+#ifdef _MSC_VER
 #include <windows.h>
+#endif
 
 enum relativeDirection { dir_forward, dir_backward, dir_left, dir_right, dir_up, dir_down };
 
@@ -169,7 +171,7 @@ public:
 		int tcount{};
 		for (auto tile : plane.tiles) {
 			os << *tile << ", ";
-			if (not (++tcount % 5) && tcount != plane.tiles.size()) {
+			if (not (++tcount % 5) && tcount != (int) plane.tiles.size()) {
 				os << "\n\t";
 			}
 		}
@@ -200,8 +202,10 @@ public:
 
 int main() {
 	using namespace std;
-
+	
+	#ifdef _MSC_VER
 	SetConsoleOutputCP(CP_UTF8);
+	#endif
 
 	cout << "⌛ Generating...\n";
 
@@ -217,10 +221,13 @@ int main() {
 	cout << "tiles: " << tile0 << " " << tile1 << " " << tile2 << "\n";
 
 	Plane plane0{ 4 };
+	
+	cout << "Done!";
+	
 	View view{};
 	view.loc = plane0.getStartingTile();
 	view.render(cout);
-
+	
 	return 0;
 
 	string command;
