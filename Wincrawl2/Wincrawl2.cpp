@@ -38,8 +38,8 @@ class Tile {
 
 	//Now, let's define some geometry. For edges 0, 1, 2, 3, 4, 5:
 	static constexpr uint8_t oppositeEdge[6]{ 2, 3, 0, 1, 5, 4 };
-	static constexpr uint8_t rotateCW[6]{ 1, 2, 3, 0, 4, 5 }; //Rotate around the Z axis, ie, top-down.
-	static constexpr uint8_t rotateCCW[6]{ 3, 0, 1, 2, 4, 5 };
+	static constexpr uint8_t rotateCW[6]{ 1, 2, 3, 0, 1, 3 }; //Rotate around the Z axis, ie, top-down.
+	static constexpr uint8_t rotateCCW[6]{ 3, 0, 1, 2, 3, 1 }; //Going around a corner from the top will land you "facing" east or west, although it could just as easily be north and south as your rotation isn't tracked.
 
 public:
 	//Since we are in a non-euclidean space here, N/E/S/W and Up/Down directions don't really make any sense.
@@ -145,7 +145,7 @@ public:
 		}
 
 		for (uint8_t x = 0; x < roomX; x++) {
-			for (uint8_t y = 0; y < roomY-1; y++) {
+			for (uint8_t y = 0; y < roomY - 1; y++) {
 				room[x][y]->link(room[(x + 1) % roomX][y], 1);
 				room[x][y]->link(room[x][y + 1], 2);
 			}
@@ -188,13 +188,63 @@ class View {
 	//A view is a regular grid of tiles, as seen from a specific tile.
 	//Because our tiles are non-euclidean, you may see tiles multiple times.
 
+	class RayWalker {
+		//Since our geometry has no external location or orientation, we must "walk" it to
+		//find out what we've got. Our RayWalker translates absolute movement of the raytrace
+		//function into relative movement through the world.
+	};
+
 public:
 	Tile* loc{};
 
 	void render(std::ostream& target) {
 		assert(loc); //If no location is defined, fail.
+
+		uint8_t windowSize[2] = { 9, 9 };
+		uint8_t viewpoint[2] = { windowSize[0] / 2, windowSize[1] / 2 };
+
 		target << loc->glyph;
+		this->raytrace(
+			viewpoint[0], viewpoint[1], 
+			windowSize[0], windowSize[1] / 2
+		);
 	}
+
+	//Borrowed and modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
+	void raytrace(int x0, int y0, int x1, int y1)
+	{
+		int dx = abs(x1 - x0);
+		int dy = abs(y1 - y0);
+		int x = x0;
+		int y = y0;
+		int n = 1 + dx + dy;
+		int x_inc = (x1 > x0) ? 1 : -1;
+		int y_inc = (y1 > y0) ? 1 : -1;
+		int error = dx - dy;
+		dx *= 2;
+		dy *= 2;
+
+		std::cout << "\n";
+		for (; n > 0; --n)
+		{
+			if (error > 0)
+			{
+				x += x_inc;
+				error -= dy;
+			}
+			else
+			{
+				y += y_inc;
+				error += dx;
+			}
+
+			std::cout << "x:" << x << ", y:" << y << "; ";
+
+		}
+	}
+
+
+
 };
 
 
