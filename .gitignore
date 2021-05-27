@@ -17,6 +17,7 @@
 mono_crash.*
 
 # Build results
+Wincrawl2/wincrawl
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
