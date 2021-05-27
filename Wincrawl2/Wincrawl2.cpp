@@ -48,7 +48,7 @@ public:
 	//However, if it helps, you can think of the links array as being such where N=0.
 	Link links[6]{};
 	uint8_t roomId{ 0 };
-	uint8_t glyph{ 0 };
+	const char8_t* glyph { u8" " }; //String, 4 bytes + null terminator for utf8 astral plane characters.
 	bool isSolid{ false };
 
 	Tile() : id(TotalTilesCreated++) {}
@@ -123,7 +123,7 @@ class Plane {
 
 	inline static uint_fast16_t TotalPlanesCreated{ 0 };
 	const uint_fast16_t id{ 0 };
-
+	
 	std::vector<Tile*> tiles; //List of all tiles we created.
 	std::vector<Tile*> roomSeeds;
 
@@ -138,8 +138,8 @@ public:
 		for (uint8_t x = 0; x < roomX; x++) {
 			for (uint8_t y = 0; y < roomY; y++) {
 				Tile* tile{ new Tile() };
-				tile->roomId = 1;
-				tile->glyph = (x + y) % 2 ? ',' : '.';
+				tile->roomId = 2;
+				tile->glyph = (x + y) % 2 ? u8"," : u8".";
 
 				tiles.push_back(tile);
 				room[x][y] = tile;
@@ -155,7 +155,7 @@ public:
 
 		//A statue of a person, let's say.
 		roomSeeds.push_back(room[2][3]);
-		room[2][3]->glyph = '@';
+		room[2][3]->glyph = u8"🯅";
 		room[2][3]->isSolid = true;
 	}
 
@@ -195,39 +195,65 @@ class View {
 		//find out what we've got. Our RayWalker translates absolute movement of the raytrace
 		//function into relative movement through the world.
 	};
+	
+	uint8_t viewSize[2];
+	std::vector<std::vector<Tile*>> grid;
+	Tile emptyTile {};
 
 public:
 	Tile* loc{};
+	
+	View(uint8_t width, uint8_t height, Tile* pointOfView) 
+		: loc(pointOfView)
+	{
+		viewSize[0] = width;
+		viewSize[1] = height;
+		
+		grid.reserve(width);
+		for (int x = 0; x < width; x++) {
+			grid[x].reserve(height);
+			for (int y = 0; y < height; y++) {
+				grid[x][y] = &emptyTile;
+			}
+		}
+		
+		emptyTile.roomId = 1;
+		emptyTile.glyph = u8"▓";
+	}
 
 	void render(std::ostream& target) {
 		assert(loc); //If no location is defined, fail.
 
-		uint8_t windowSize[2] = { 9, 9 };
-		uint8_t viewpoint[2] = { windowSize[0] / 2, windowSize[1] / 2 };
-
-		target << loc->glyph;
+		int viewloc[2] = { viewSize[0] / 2, viewSize[1] / 2 };
+		
+		Tile* tilemap[viewSize[0]][viewSize[1]] = {};
+		
+		target << reinterpret_cast<const char*>(loc->glyph) << "\n";
+		
 		this->raytrace(
-			viewpoint[0], viewpoint[1], 
-			windowSize[0], windowSize[1] / 2
+			viewloc[0], viewloc[1], 
+			viewSize[0], viewSize[1] / 2
 		);
+		
+		target << "\n";
 	}
 
 	//Borrowed and modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
 	void raytrace(int x0, int y0, int x1, int y1)
 	{
-		int dx = abs(x1 - x0);
-		int dy = abs(y1 - y0);
-		int x = x0;
-		int y = y0;
-		int n = 1 + dx + dy;
-		int x_inc = (x1 > x0) ? 1 : -1;
-		int y_inc = (y1 > y0) ? 1 : -1;
+		int dx { abs(x1 - x0) };
+		int dy { abs(y1 - y0) };
+		int last_dx { 0 };
+		int last_dy { 0 };
+		int x { x0 };
+		int y { y0 };
+		int x_inc { (x1 > x0) ? 1 : -1 };
+		int y_inc { (y1 > y0) ? 1 : -1 };
 		int error = dx - dy;
 		dx *= 2;
 		dy *= 2;
 
-		std::cout << "\n";
-		for (; n > 0; --n)
+		for (int n = dx + dy + 1; n > 0; --n)
 		{
 			if (error > 0)
 			{
@@ -272,10 +298,9 @@ int main() {
 
 	Plane plane0{ 4 };
 	
-	cout << "Done!";
+	cout << "Done!\n";
 	
-	View view{};
-	view.loc = plane0.getStartingTile();
+	View view{ 9, 9, plane0.getStartingTile() };
 	view.render(cout);
 	
 	return 0;
