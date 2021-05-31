@@ -7,5 +7,5 @@ if [ "$1" = "--watch" ]; then
 	echo wincrawl | entr -npr ./wincrawl &
 	echo *.cpp *.hpp | entr -c $0
 else
-	g++ Wincrawl2.cpp -std=c++20 -Wall -o wincrawl
+	g++ Wincrawl2.cpp -std=c++20 -Wall -o wincrawl -g
 fi
