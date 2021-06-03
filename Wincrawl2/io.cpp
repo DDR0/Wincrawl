@@ -36,14 +36,16 @@ int getInputChar(void) {
 	return buf;
 }
 
-#endif
- 
-void getInputCharAsync(int* value) { //should be std::atomic<shared_ptr<int>>?
+#endif 
+
+//Wrap above in a little read loop, to be called as a thread.
+void getInputCharAsync(std::atomic<int>& value) {
 	using namespace std::chrono_literals;
 	
-	while(*value > -2) {
-		*value = getInputChar();
-		std::this_thread::yield();
-		while (*value >= 0) std::this_thread::sleep_for(1ms);
+	while(value > -2) { //-2 is "exit", -1 is "ready for next char".
+		value = getInputChar(); //Blocking.
+		std::this_thread::yield(); //Yield to our other thread if it's ready now.
+		while (value >= 0)         //Otherwise wait 1ms and try again.
+			std::this_thread::sleep_for(1ms);
 	}
 }

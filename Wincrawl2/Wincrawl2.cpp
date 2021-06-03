@@ -443,17 +443,16 @@ int main() {
 	view.render(cout);
 
 	string command {};
-	int chr { -1 };
-	std::jthread inputListener(getInputCharAsync, &chr);
+	std::atomic<int> chr { -1 };
+	std::jthread inputListener(getInputCharAsync, std::ref(chr));
 	cout << "> ";
 	while (true) {
 		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
-		if (chr >= 0) {
-			cout << chr << "\n> ";
+		int chr_ = chr.exchange(-1);
+		if (chr_ >= 0) {
+			cout << chr_ << "\n> ";
 			
-			if (!chr || chr==4 || chr==27) break; //Null, ctrl-d, esc.
-			
-			chr = -1;
+			if (!chr_ || chr_==4 || chr_==27) break; //Null, ctrl-d, esc.
 		}
 		std::this_thread::sleep_until(nextFrame);
 	}
