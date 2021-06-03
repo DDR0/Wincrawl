@@ -4,8 +4,8 @@ set -eo pipefail
 IFS=$'\n\t'
 
 if [ "$1" = "--watch" ]; then
-	echo wincrawl | entr -npr ./wincrawl &
-	echo *.cpp *.hpp | entr -c $0
+	ls wincrawl | entr -npr ./wincrawl &
+	ls *.cpp *.hpp | entr -cn $0
 else
-	g++ Wincrawl2.cpp -std=c++20 -Wall -o wincrawl -g
+	g++ Wincrawl2.cpp -std=c++20 -Wall -o wincrawl -g -lpthread
 fi

@@ -1,13 +1,18 @@
-﻿#include <cassert>
+﻿#include <atomic>
+#include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <thread>
 #include <vector>
 
 #ifdef _MSC_VER
 #include <windows.h>
 #endif
+
+#include "io.cpp"
 
 enum relativeDirection { dir_forward, dir_backward, dir_left, dir_right, dir_up, dir_down };
 
@@ -410,6 +415,7 @@ public:
 
 int main() {
 	using namespace std;
+	using namespace chrono_literals;
 	
 	#ifdef _MSC_VER
 	SetConsoleOutputCP(CP_UTF8);
@@ -435,12 +441,23 @@ int main() {
 	View view{ 20, 20, plane0.getStartingTile() };
 	
 	view.render(cout);
-	
-	return 0;
 
-	string command;
-	do {
-		getline(cin, command);
-		cout << "> " << command << "\n";
-	} while (command != "q");
+	string command {};
+	int chr { -1 };
+	std::jthread inputListener(getInputCharAsync, &chr);
+	cout << "> ";
+	while (true) {
+		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
+		if (chr >= 0) {
+			cout << chr << "\n> ";
+			
+			if (!chr || chr==4 || chr==27) break; //Null, ctrl-d, esc.
+			
+			chr = -1;
+		}
+		std::this_thread::sleep_until(nextFrame);
+	}
+	chr = -2;
+	cout << "End.\n";
+	return 0;
 }
