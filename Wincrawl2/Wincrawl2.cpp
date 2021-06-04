@@ -448,15 +448,20 @@ int main() {
 	cout << "> ";
 	while (true) {
 		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
-		int chr_ = chr.exchange(-1);
+		int chr_ = chr.load();
 		if (chr_ >= 0) {
 			cout << chr_ << "\n> ";
 			
-			if (!chr_ || chr_==4 || chr_==27) break; //Null, ctrl-d, esc.
+			if (!chr_ || chr_==4 || chr_==27) { //Null, ctrl-d, esc.
+				chr = -2;
+				break;
+			} else {
+				chr = -1; //Next char.
+			}
 		}
 		std::this_thread::sleep_until(nextFrame);
 	}
-	chr = -2;
-	cout << "End.\n";
+	
+	cout << "Good-bye.\n";
 	return 0;
 }
