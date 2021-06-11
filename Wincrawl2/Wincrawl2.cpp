@@ -1,12 +1,16 @@
 ﻿#include <atomic>
 #include <cassert>
+#include <csignal>
+#include <cstring>
 #include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <memory>
+#include <span>
 #include <sstream>
 #include <thread>
 #include <vector>
+#include <functional>
 
 #ifdef _MSC_VER
 #include <windows.h>
@@ -14,8 +18,61 @@
 
 #include "io.cpp"
 
-enum relativeDirection { dir_forward, dir_backward, dir_left, dir_right, dir_up, dir_down };
+#ifdef _MSC_VER
+//unsigned int _lzcnt_u32 (unsigned int a)
+#define COUNT_LEADING_ZEROS _lzcnt_u32
+#else
+//int __builtin_clz (unsigned int x)
+#define COUNT_LEADING_ZEROS __builtin_clz
+#endif
 
+#define dbg std::raise(SIGINT)
+
+class Color {
+	uint8_t channels[3] {};
+public:
+	Color(uint8_t r, uint8_t g, uint8_t b) : channels{r, g, b} {}
+	Color(Color& other) : channels{other[0], other[1], other[2]} {}
+	
+	void set(uint8_t r, uint8_t g, uint8_t b) {
+		channels[0] = r;
+		channels[1] = g;
+		channels[2] = b;
+	}
+
+	uint8_t* rgb() {
+		return channels;
+	}
+	
+	Color& operator=(const Color& other) {
+		for (int i = 0; i < 3; i++)
+			channels[i] = other[i];
+		return *this;
+	}
+	
+	uint8_t operator[](size_t i) {
+		assert(i < 3);
+		return channels[i];
+	}
+	
+	const uint8_t operator[](size_t i) const {
+		assert(i < 3);
+		return channels[i];
+	}
+	
+	friend auto operator<<(std::ostream& os, Color const& color) -> std::ostream& {
+		return os
+			<< "Color(" //display values
+			<< std::to_string(color[0]) << "," 
+			<< std::to_string(color[1]) << "," 
+			<< std::to_string(color[2]) << ")"
+			
+			<< "[38;2;" //display color
+			<< std::to_string(color[0]) << ";" 
+			<< std::to_string(color[1]) << ";" 
+			<< std::to_string(color[2]) << "m██[0m";
+	}
+};
 
 
 class Tile {
@@ -45,12 +102,12 @@ class Tile {
 	inline static uint_fast16_t TotalTilesCreated;
 	const uint_fast16_t id{ 0 };
 
+public:
 	//Now, let's define some geometry. For edges 0, 1, 2, 3, 4, 5:
 	static constexpr uint8_t oppositeEdge[6]{ 2, 3, 0, 1, 5, 4 };
 	static constexpr uint8_t rotateCW[6]{ 1, 2, 3, 0, 1, 3 }; //Rotate around the Z axis, ie, top-down.
 	static constexpr uint8_t rotateCCW[6]{ 3, 0, 1, 2, 3, 1 }; //Going around a corner from the top will land you "facing" east or west, although it could just as easily be north and south as your rotation isn't tracked.
 
-public:
 	//Since we are in a non-euclidean space here, N/E/S/W and Up/Down directions don't really make any sense.
 	//However, if it helps, you can think of the links array as being such where N=0.
 	Link links[6]{};
@@ -203,8 +260,8 @@ public:
 
 		//A statue of a person, let's say.
 		roomSeeds.push_back(room[2][3]);
-		room[2][3]->glyph = u8"@";
-		room[2][3]->isOpaque = true;
+		//room[2][3]->glyph = u8"@";
+		//room[2][3]->isOpaque = true;
 	}
 
 	~Plane() {
@@ -257,9 +314,9 @@ class View {
 	public:
 		RayWalker(std::vector<std::vector<Tile*>>* field_) : field(field_) {}
 		
-		void reset(Tile* startingTile, int x, int y) {
+		void reset(Tile* startingTile, int rot, int x, int y) {
 			loc = startingTile;
-			dir = 0;
+			dir = rot;
 			
 			lastX = x;
 			lastY = y;
@@ -320,6 +377,7 @@ class View {
 
 public:
 	Tile* loc;
+	int rot{ 0 };
 	
 	View(uint8_t width, uint8_t height, Tile* pointOfView) 
 		: loc(pointOfView)
@@ -393,7 +451,7 @@ public:
 		dx *= 2;
 		dy *= 2;
 		
-		rayWalker.reset(loc, x, y);
+		rayWalker.reset(loc, rot, x, y);
 
 		for (int n = (dx + dy)/2; n > 0; --n) {
 			if (error > 0) {
@@ -413,12 +471,14 @@ public:
 };
 
 
+
+
 int main() {
 	using namespace std;
 	using namespace chrono_literals;
 	
 	#ifdef _MSC_VER
-	SetConsoleOutputCP(CP_UTF8);
+		SetConsoleOutputCP(CP_UTF8);
 	#endif
 
 	cout << "⌛ Generating...\n";
@@ -440,23 +500,124 @@ int main() {
 	
 	View view{ 20, 20, plane0.getStartingTile() };
 	
+	
 	view.render(cout);
-
-	string command {};
-	std::atomic<int> chr { -1 };
-	std::jthread inputListener(getInputCharAsync, std::ref(chr));
+	
+	
+	
+	
+	
+	struct trigger {
+		const char8_t* seq;
+		function<void()> callback;
+	};
+	std::vector<trigger> triggers {};
+	auto runTrigger {[&triggers] (const char8_t* cmd, int cmdlen) -> bool { //return bool means "reset" or "did consume input".
+		int commandMatchesTriggers{};
+		for (auto trigger: triggers) {
+			const bool partiallyEqual{ !strncmp(
+				reinterpret_cast<const char*>(trigger.seq),
+				reinterpret_cast<const char*>(cmd),
+				cmdlen
+			) };
+			commandMatchesTriggers += partiallyEqual;
+			
+			if(!strcmp( //Fully equal, run the cb - must be a full match to absorb all of an escape sequence which could be unique by the second character.
+				reinterpret_cast<const char*>(trigger.seq),
+				reinterpret_cast<const char*>(cmd)
+			)) {
+				trigger.callback();
+				return true;
+			}
+		}
+		return !commandMatchesTriggers;
+	}};
+	
+	
+	auto moveCamera { [&view](int direction) {
+		auto link {view.loc->getNextTile(direction + view.rot) };
+		if (!link->tile()) return;
+		
+		//To get the new view rotation, consider the following example
+		//of travelling between two tiles in direction 1.
+		//
+		//  view.rot=1    view.rot=0
+		//  ┌─────┐       ┌─────┐
+		//  │  1  │ dir 1 │  0  │
+		//  │0   2│ ────→ │3   1│
+		//  │  3  │       │  2  │
+		//  └─────┘       └─────┘
+		//   tile1         tile2
+		//
+		//To calculate the new view rotation, we get our rotational
+		//delta by subtracting the opposite of the destination arrival
+		//direction (which we entered from) from the direction we left
+		//from. In this case, we leave from 2 and arrive at 3, so the
+		//opposite direction is 1. This is pointing, relatively
+		//speaking, in the same direction we left. We will keep it
+		//aligned by adding the delta between the two directions to
+		//our rotation. Delta is 1-2=-1, so rotation is 1+-1=0.
+		//
+		//Thus, the following formula breaks down like so:
+		//Inner-most brackets: Tile direction left in.
+		//Up one level: Rotatinoal delta calculation.
+		//Rest of formula: Add rotational delta to current rotation.
+		view.rot = (view.rot + (
+			Tile::oppositeEdge[link->dir()] - (direction + view.rot)
+		) + 4) % 4;
+		view.loc = link->tile();
+		
+		cout << "\033c";
+		view.render(cout);
+	}};
+	
+	triggers.emplace_back(u8"[A", [&]() { moveCamera(0); }); //up
+	triggers.emplace_back(u8"[B", [&]() { moveCamera(2); }); //down
+	triggers.emplace_back(u8"[C", [&]() { moveCamera(1); }); //left
+	triggers.emplace_back(u8"[D", [&]() { moveCamera(3); }); //right
+	
+	
+	
+	auto red = Color(255, 0, 0);
+	cout << red << "\n";
+	
+	
+	bool doQuitGame{ false };
+	triggers.emplace_back(u8"q", [&]() { doQuitGame = true; });
+	
+	atomic<int> chr { -1 };
+	jthread inputListener(getInputCharAsync, ref(chr));
+	
+	const int maxInputBufferLength = 8;
+	int inputBuffered{ 0 };
+	char8_t inputBuffer[maxInputBufferLength] {};
+	
 	cout << "> ";
 	while (true) {
 		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
 		int chr_ = chr.load();
 		if (chr_ >= 0) {
-			cout << chr_ << "\n> ";
+			//chr_ is, presumably, a utf32 character. We use utf8 internally. Convert.
+			auto codepoints {4-COUNT_LEADING_ZEROS(chr_)/8};
+			inputBuffered += codepoints;
+			assert(inputBuffered+1 < maxInputBufferLength); //Last char must be reserved for 0.
+			for(;codepoints;codepoints--)
+				inputBuffer[inputBuffered-codepoints] =
+					(chr_ >> 8*(codepoints-1)) & 0xFF;
 			
-			if (!chr_ || chr_==4 || chr_==27) { //Null, ctrl-d, esc.
-				chr = -2;
+			if (runTrigger(inputBuffer, inputBuffered)) {
+				inputBuffered = 0;
+				for (int i = 0; i < maxInputBufferLength; i++)
+					inputBuffer[i] = 0;
+			}
+			
+			cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
+			
+			if (!chr_ || chr_==4 || doQuitGame) { //Null, ctrl-d.
+				chr = getInputCharAsync::stop;
 				break;
 			} else {
-				chr = -1; //Next char.
+				chr = getInputCharAsync::next; //Next char.
 			}
 		}
 		std::this_thread::sleep_until(nextFrame);
