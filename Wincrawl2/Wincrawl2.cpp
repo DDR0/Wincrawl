@@ -20,6 +20,7 @@
 
 #ifdef _MSC_VER
 //unsigned int _lzcnt_u32 (unsigned int a)
+#include "immintrin.h"
 #define COUNT_LEADING_ZEROS _lzcnt_u32
 #else
 //int __builtin_clz (unsigned int x)
@@ -29,11 +30,11 @@
 #define dbg std::raise(SIGINT)
 
 class Color {
-	uint8_t channels[3] {};
+	uint8_t channels[3]{};
 public:
-	Color(uint8_t r, uint8_t g, uint8_t b) : channels{r, g, b} {}
-	Color(Color& other) : channels{other[0], other[1], other[2]} {}
-	
+	Color(uint8_t r, uint8_t g, uint8_t b) : channels{ r, g, b } {}
+	Color(Color& other) : channels{ other[0], other[1], other[2] } {}
+
 	void set(uint8_t r, uint8_t g, uint8_t b) {
 		channels[0] = r;
 		channels[1] = g;
@@ -43,33 +44,33 @@ public:
 	uint8_t* rgb() {
 		return channels;
 	}
-	
+
 	Color& operator=(const Color& other) {
 		for (int i = 0; i < 3; i++)
 			channels[i] = other[i];
 		return *this;
 	}
-	
+
 	uint8_t operator[](size_t i) {
 		assert(i < 3);
 		return channels[i];
 	}
-	
+
 	const uint8_t operator[](size_t i) const {
 		assert(i < 3);
 		return channels[i];
 	}
-	
+
 	friend auto operator<<(std::ostream& os, Color const& color) -> std::ostream& {
 		return os
 			<< "Color(" //display values
-			<< std::to_string(color[0]) << "," 
-			<< std::to_string(color[1]) << "," 
+			<< std::to_string(color[0]) << ","
+			<< std::to_string(color[1]) << ","
 			<< std::to_string(color[2]) << ")"
-			
+
 			<< "[38;2;" //display color
-			<< std::to_string(color[0]) << ";" 
-			<< std::to_string(color[1]) << ";" 
+			<< std::to_string(color[0]) << ";"
+			<< std::to_string(color[1]) << ";"
 			<< std::to_string(color[2]) << "m██[0m";
 	}
 };
@@ -112,7 +113,7 @@ public:
 	//However, if it helps, you can think of the links array as being such where N=0.
 	Link links[6]{};
 	uint8_t roomId{ 0 }; //0=uninitialized, 1=hidden, 2=empty, 9=hallway, 10≥rooms
-	const char8_t* glyph { u8" " }; //String, 4 bytes + null terminator for utf8 astral plane characters.
+	const char8_t* glyph{ u8" " }; //String, 4 bytes + null terminator for utf8 astral plane characters.
 	bool isOpaque{ false };
 
 	Tile() : id(TotalTilesCreated++) {}
@@ -178,34 +179,36 @@ public:
 		outbound.set(other, outbound.dir());
 		inbound.set(other, inbound.dir());
 	}
-	
+
 	Link* getNextTile(int comingFrom, int pointingIn) {
 		//comingFrom is an absolute, a direction index.
 		//pointingIn is a relative direction index. (a rotation around z in quarters)
 		assert(0 <= comingFrom && comingFrom < 6);
 		assert(-4 < pointingIn && pointingIn < 4);
 		switch (pointingIn) {
-			case +0: return &links[oppositeEdge[comingFrom]];
-			case -1:
-			case +3: return &links[rotateCCW[comingFrom]];
-			case -3:
-			case +1: return &links[rotateCW[comingFrom]];
-			case -2:
-			case +2: return &links[comingFrom];
-			default: 
-				std::cerr << "Expected pointingIn to be in range [-3,3]; was " << pointingIn << "\n";
-				assert(false);
+		case +0: return &links[oppositeEdge[comingFrom]];
+		case -1:
+		case +3: return &links[rotateCCW[comingFrom]];
+		case -3:
+		case +1: return &links[rotateCW[comingFrom]];
+		case -2:
+		case +2: return &links[comingFrom];
+		default:
+			std::cerr << "Expected pointingIn to be in range [-3,3]; was " << pointingIn << "\n";
+			assert(false);
+			return nullptr;
 		}
 	}
-	
+
 	Link* getNextTile(int directionIndex) {
 		assert(0 <= directionIndex && directionIndex < 6);
 		return &(links[directionIndex]);
 	}
-	
+
 	std::string getIDStr() {
-		auto buf = std::make_unique<char[]>( 4 );
-		std::sprintf(buf.get(), "%0*lu", 3, id );
+		constexpr int idDigitLength = 4;
+		auto buf = std::make_unique<char[]>(idDigitLength);
+		std::snprintf(buf.get(), idDigitLength, "%0*lu", idDigitLength - 1, id);
 		return std::string(buf.get());
 	}
 };
@@ -216,7 +219,7 @@ class Plane {
 
 	inline static uint_fast16_t TotalPlanesCreated{ 0 };
 	const uint_fast16_t id{ 0 };
-	
+
 	std::vector<Tile*> tiles; //List of all tiles we created.
 	std::vector<Tile*> roomSeeds;
 
@@ -276,7 +279,7 @@ public:
 		int tcount{};
 		for (auto tile : plane.tiles) {
 			os << *tile << ", ";
-			if (not (++tcount % 5) && tcount != (int) plane.tiles.size()) {
+			if (not (++tcount % 5) && tcount != (int)plane.tiles.size()) {
 				os << "\n\t";
 			}
 		}
@@ -300,97 +303,99 @@ class View {
 		//find out what we've got. Our RayWalker translates absolute movement of the raytrace
 		//function into relative movement through the world.
 		//It notes down what it's found in the field.
-		
-		Tile* loc; //location
-		int dir {0}; //direction
-		
-		int lastX {0};
-		int lastY {0};
-		int lastDirectionIndex {0};
-		
+
+		Tile* loc{ nullptr }; //location
+		int dir{ 0 }; //direction
+
+		int lastX{ 0 };
+		int lastY{ 0 };
+		int lastDirectionIndex{ 0 };
+
 		typedef std::vector<std::vector<Tile*>>* Field;
-		Field field {};
-		
+		Field field{};
+
 	public:
 		RayWalker(std::vector<std::vector<Tile*>>* field_) : field(field_) {}
-		
+
 		void reset(Tile* startingTile, int rot, int x, int y) {
 			loc = startingTile;
 			dir = rot;
-			
+
 			lastX = x;
 			lastY = y;
 			lastDirectionIndex = 0;
-			
+
 			//std::cout << "Reset raywalker.\n";
 		}
-		
+
 		bool moveTo(int x, int y) { //Must be within the bounds of field.
 			const int currentDeltaX = x - lastX;
 			const int currentDeltaY = y - lastY;
-			
+
 			//std::cout << "moved to " << x << "×" << y << " (" << currentDeltaX << "×" << currentDeltaY << ")\n";
 			int directionIndex;
 			if (currentDeltaY == +1) directionIndex = 0; else
-			if (currentDeltaX == +1) directionIndex = 1; else
-			if (currentDeltaY == -1) directionIndex = 2; else
-			if (currentDeltaX == -1) directionIndex = 3; else {
-				return true; //No motion, stay where we are.
-			}
-			
-			if(not(lastX||lastY)) {
+				if (currentDeltaX == +1) directionIndex = 1; else
+					if (currentDeltaY == -1) directionIndex = 2; else
+						if (currentDeltaX == -1) directionIndex = 3; else {
+							return true; //No motion, stay where we are.
+						}
+
+			if (not(lastX || lastY)) {
 				//Starting off, so relative movement to our tile.
 				auto movement = loc->getNextTile(directionIndex);
 				loc = movement->tile();
 				lastDirectionIndex = dir = movement->dir();
 				//std::cout << "moved! " << directionIndex << "\n";
-			} else {
+			}
+			else {
 				//Enter the room in the relative direction from us.
 				//std::cout << "moved: " << directionIndex << " (from " << lastDirectionIndex << " is " << (directionIndex-lastDirectionIndex) << ")\n";
-				auto movement = loc->getNextTile(dir, directionIndex-lastDirectionIndex);
+				auto movement = loc->getNextTile(dir, directionIndex - lastDirectionIndex);
 				loc = movement->tile();
 				dir = movement->dir();
 				lastDirectionIndex = directionIndex;
 			}
-			
+
 			lastX = x;
 			lastY = y;
-			
-			if(loc) {
+
+			if (loc) {
 				//std::cout << "setting " << x << "×" << y << " to #" << loc->getIDStr() << " (" << reinterpret_cast<const char*>(loc->glyph) << ")\n";
 				(*field)[x][y] = loc;
 				return !loc->isOpaque; //Continue tracing only if whatever we're looking at isn't solid.
-			} else {
+			}
+			else {
 				//std::cout << "setting " << x << "×" << y << " to #" << emptyTile.getIDStr() << " (" << reinterpret_cast<const char*>(emptyTile.glyph) << ")\n";
 				(*field)[x][y] = &emptyTile;
 				return false;
 			}
 		}
 	};
-	
+
 	uint8_t viewSize[2];
 	std::vector<std::vector<Tile*>> grid;
-	inline static Tile hiddenTile {};
-	inline static Tile emptyTile {};
-	
+	inline static Tile hiddenTile{};
+	inline static Tile emptyTile{};
+
 	RayWalker rayWalker{ &grid };
 
 public:
 	Tile* loc;
 	int rot{ 0 };
-	
-	View(uint8_t width, uint8_t height, Tile* pointOfView) 
+
+	View(uint8_t width, uint8_t height, Tile* pointOfView)
 		: loc(pointOfView)
 	{
 		viewSize[0] = width;
 		viewSize[1] = height;
-		
+
 		grid.reserve(width);
 		for (int x = 0; x < viewSize[0]; x++) {
 			grid.emplace_back();
 			grid[x].assign(height, nullptr);
 		}
-		
+
 		hiddenTile.roomId = 1;
 		hiddenTile.glyph = u8" ";
 		emptyTile.roomId = 2;
@@ -401,32 +406,32 @@ public:
 		assert(loc); //If no location is defined, fail.
 
 		int viewloc[2] = { viewSize[0] / 2, viewSize[1] / 2 };
-		
+
 		//Tile* tilemap[viewSize[0]][viewSize[1]] = {};
-		
+
 		//target << reinterpret_cast<const char*>(loc->glyph) << "\n";
 		std::cout << "starting\n";
-		
+
 		//First, all our tiles are hidden.
 		for (int x = 0; x < viewSize[0]; x++) {
 			for (int y = 0; y < viewSize[1]; y++) {
 				grid[x][y] = &hiddenTile;
 			}
 		}
-		
-		for (int x = 0; x < viewSize[0]; x+=viewSize[0]-1) {
+
+		for (int x = 0; x < viewSize[0]; x += viewSize[0] - 1) {
 			for (int y = 0; y < viewSize[1]; y++) {
 				this->raytrace(rayWalker, viewloc[0], viewloc[1], x, y);
 			}
 		}
 		for (int x = 0; x < viewSize[0]; x++) {
-			for (int y = 0; y < viewSize[1]; y+=viewSize[1]-1) {
+			for (int y = 0; y < viewSize[1]; y += viewSize[1] - 1) {
 				this->raytrace(rayWalker, viewloc[0], viewloc[1], x, y);
 			}
 		}
 		//this->raytrace(rayWalker, viewloc[0], viewloc[1], viewSize[0]-1, 0);
 		grid[viewloc[0]][viewloc[1]] = loc;
-		
+
 		for (int y = 0; y < viewSize[1]; y++) {
 			for (int x = 0; x < viewSize[0]; x++) {
 				target << reinterpret_cast<const char*>(grid[x][y]->glyph);
@@ -441,27 +446,28 @@ public:
 	void raytrace(RayWalker&, int x0, int y0, int x1, int y1)
 	{
 		//std::cout << "trace: " << x0 << "→" << x1 << ", " << y0 << "→" << y1 << "\n";
-		int dx { abs(x1 - x0) };
-		int dy { abs(y1 - y0) };
-		int x { x0 };
-		int y { y0 };
-		int x_inc { (x1 > x0) ? 1 : -1 };
-		int y_inc { (y1 > y0) ? 1 : -1 };
+		int dx{ abs(x1 - x0) };
+		int dy{ abs(y1 - y0) };
+		int x{ x0 };
+		int y{ y0 };
+		int x_inc{ (x1 > x0) ? 1 : -1 };
+		int y_inc{ (y1 > y0) ? 1 : -1 };
 		int error = dx - dy;
 		dx *= 2;
 		dy *= 2;
-		
+
 		rayWalker.reset(loc, rot, x, y);
 
-		for (int n = (dx + dy)/2; n > 0; --n) {
+		for (int n = (dx + dy) / 2; n > 0; --n) {
 			if (error > 0) {
 				x += x_inc;
 				error -= dy;
-			} else {
+			}
+			else {
 				y += y_inc;
 				error += dx;
 			}
-			
+
 			//std::cout << "rayloc: " << x << "×" << y << ", ";
 			if (!rayWalker.moveTo(x, y)) {
 				break;//If the rayWalker has moved to an invalid location, stop tracing.
@@ -476,10 +482,10 @@ public:
 int main() {
 	using namespace std;
 	using namespace chrono_literals;
-	
-	#ifdef _MSC_VER
-		SetConsoleOutputCP(CP_UTF8);
-	#endif
+
+#ifdef _MSC_VER
+	SetConsoleOutputCP(CP_UTF8);
+#endif
 
 	cout << "⌛ Generating...\n";
 
@@ -495,34 +501,40 @@ int main() {
 	cout << "tiles: " << tile0 << " " << tile1 << " " << tile2 << "\n";
 
 	Plane plane0{ 4 };
-	
+
 	cout << "Done!\n";
-	
+
 	View view{ 20, 20, plane0.getStartingTile() };
-	
-	
+
+
 	view.render(cout);
-	
-	
-	
-	
-	
-	struct trigger {
+
+
+
+
+
+	struct Trigger {
 		const char8_t* seq;
 		function<void()> callback;
 	};
-	std::vector<trigger> triggers {};
-	auto runTrigger {[&triggers] (const char8_t* cmd, int cmdlen) -> bool { //return bool means "reset" or "did consume input".
+	std::vector<Trigger> triggers{};
+	auto runTrigger{ [&triggers](const char8_t* cmd, int cmdlen) -> bool { //return bool means "reset" or "did consume input".
 		int commandMatchesTriggers{};
-		for (auto trigger: triggers) {
+		int trigno = 0;
+		for (auto trigger : triggers) {
+			//std::cerr
+			//	<< "comp[0]: i" << trigno++
+			//	<< " cmd " << (int) *reinterpret_cast<const uint8_t*>(cmd)
+			//	<< " against " << (int) *reinterpret_cast<const uint8_t*>(trigger.seq) << "\n";
+
 			const bool partiallyEqual{ !strncmp(
 				reinterpret_cast<const char*>(trigger.seq),
 				reinterpret_cast<const char*>(cmd),
 				cmdlen
 			) };
 			commandMatchesTriggers += partiallyEqual;
-			
-			if(!strcmp( //Fully equal, run the cb - must be a full match to absorb all of an escape sequence which could be unique by the second character.
+
+			if (!strcmp( //Fully equal, run the cb - must be a full match to absorb all of an escape sequence which could be unique by the second character.
 				reinterpret_cast<const char*>(trigger.seq),
 				reinterpret_cast<const char*>(cmd)
 			)) {
@@ -531,13 +543,13 @@ int main() {
 			}
 		}
 		return !commandMatchesTriggers;
-	}};
-	
-	
-	auto moveCamera { [&view](int direction) {
+	} };
+
+
+	auto moveCamera{ [&view](int direction) {
 		auto link {view.loc->getNextTile(direction + view.rot) };
 		if (!link->tile()) return;
-		
+
 		//To get the new view rotation, consider the following example
 		//of travelling between two tiles in direction 1.
 		//
@@ -566,63 +578,70 @@ int main() {
 			Tile::oppositeEdge[link->dir()] - (direction + view.rot)
 		) + 4) % 4;
 		view.loc = link->tile();
-		
+
 		cout << "\033c";
 		view.render(cout);
-	}};
-	
-	triggers.emplace_back(u8"[A", [&]() { moveCamera(0); }); //up
-	triggers.emplace_back(u8"[B", [&]() { moveCamera(2); }); //down
-	triggers.emplace_back(u8"[C", [&]() { moveCamera(1); }); //left
-	triggers.emplace_back(u8"[D", [&]() { moveCamera(3); }); //right
-	
-	
-	
+	} };
+
+	//Linux arrow key sequences.
+	triggers.emplace_back(u8"[A", [&]{ moveCamera(0); }); //up
+	triggers.emplace_back(u8"[B", [&]{ moveCamera(2); }); //down
+	triggers.emplace_back(u8"[C", [&]{ moveCamera(1); }); //left
+	triggers.emplace_back(u8"[D", [&]{ moveCamera(3); }); //right
+
+	//Windows arrow key sequences.
+	triggers.emplace_back((const char8_t*)"\xE0H", [&] { moveCamera(0); }); //up
+	triggers.emplace_back((const char8_t*)"\xE0P", [&] { moveCamera(2); }); //down
+	triggers.emplace_back((const char8_t*)"\xE0M", [&] { moveCamera(1); }); //left
+	triggers.emplace_back((const char8_t*)"\xE0K", [&] { moveCamera(3); }); //right
+
 	auto red = Color(255, 0, 0);
 	cout << red << "\n";
-	
-	
+
+
 	bool doQuitGame{ false };
 	triggers.emplace_back(u8"q", [&]() { doQuitGame = true; });
-	
-	atomic<int> chr { -1 };
+	triggers.emplace_back(u8"", [&]() { doQuitGame = true; }); //windows, ctrl-c
+
+	atomic<int> chr{ -1 };
 	jthread inputListener(getInputCharAsync, ref(chr));
-	
+
 	const int maxInputBufferLength = 8;
 	int inputBuffered{ 0 };
-	char8_t inputBuffer[maxInputBufferLength] {};
-	
+	char8_t inputBuffer[maxInputBufferLength]{};
+
 	cout << "> ";
 	while (true) {
 		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
 		int chr_ = chr.load();
 		if (chr_ >= 0) {
 			//chr_ is, presumably, a utf32 character. We use utf8 internally. Convert.
-			auto codepoints {4-COUNT_LEADING_ZEROS(chr_)/8};
+			auto codepoints{ 4 - COUNT_LEADING_ZEROS(chr_) / 8 };
 			inputBuffered += codepoints;
-			assert(inputBuffered+1 < maxInputBufferLength); //Last char must be reserved for 0.
-			for(;codepoints;codepoints--)
-				inputBuffer[inputBuffered-codepoints] =
-					(chr_ >> 8*(codepoints-1)) & 0xFF;
-			
+			assert(inputBuffered + 1 < maxInputBufferLength); //Last char must be reserved for 0.
+			for (; codepoints; codepoints--)
+				inputBuffer[inputBuffered - codepoints] =
+				(chr_ >> 8 * (codepoints - 1)) & 0xFF;
+
 			if (runTrigger(inputBuffer, inputBuffered)) {
 				inputBuffered = 0;
 				for (int i = 0; i < maxInputBufferLength; i++)
 					inputBuffer[i] = 0;
 			}
-			
+
 			cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
-			
-			if (!chr_ || chr_==4 || doQuitGame) { //Null, ctrl-d.
+
+			if (!chr_ || chr_ == 4 || doQuitGame) { //Null, ctrl-d.
 				chr = getInputCharAsync::stop;
 				break;
-			} else {
+			}
+			else {
 				chr = getInputCharAsync::next; //Next char.
 			}
 		}
 		std::this_thread::sleep_until(nextFrame);
 	}
-	
+
 	cout << "Good-bye.\n";
 	return 0;
 }
