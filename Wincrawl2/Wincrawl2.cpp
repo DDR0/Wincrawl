@@ -29,6 +29,10 @@
 
 #define dbg std::raise(SIGINT)
 
+
+void clearScreen() { std::cout << "\033c"; }
+
+
 class Color {
 	uint8_t channels[3]{};
 public:
@@ -335,11 +339,11 @@ class View {
 			//std::cout << "moved to " << x << "×" << y << " (" << currentDeltaX << "×" << currentDeltaY << ")\n";
 			int directionIndex;
 			if (currentDeltaY == +1) directionIndex = 0; else
-				if (currentDeltaX == +1) directionIndex = 1; else
-					if (currentDeltaY == -1) directionIndex = 2; else
-						if (currentDeltaX == -1) directionIndex = 3; else {
-							return true; //No motion, stay where we are.
-						}
+			if (currentDeltaX == +1) directionIndex = 1; else
+			if (currentDeltaY == -1) directionIndex = 2; else
+			if (currentDeltaX == -1) directionIndex = 3; else {
+				return true; //No motion, stay where we are.
+			}
 
 			if (not(lastX || lastY)) {
 				//Starting off, so relative movement to our tile.
@@ -397,7 +401,7 @@ public:
 		}
 
 		hiddenTile.roomId = 1;
-		hiddenTile.glyph = u8" ";
+		hiddenTile.glyph = u8"░";
 		emptyTile.roomId = 2;
 		emptyTile.glyph = u8"▓";
 	}
@@ -474,8 +478,47 @@ public:
 			};
 		}
 	}
-};
+	
+	void moveCamera(int direction) {
+		auto link {loc->getNextTile(direction + rot) };
+		if (!link->tile()) return;
 
+		//To get the new view rotation, consider the following example
+		//of travelling between two tiles in direction 1.
+		//
+		//  view.rot=1    view.rot=0
+		//  ┌─────┐       ┌─────┐
+		//  │  1  │ dir 1 │  0  │
+		//  │0   2│ ────→ │3   1│
+		//  │  3  │       │  2  │
+		//  └─────┘       └─────┘
+		//   tile1         tile2
+		//
+		//To calculate the new view rotation, we get our rotational
+		//delta by subtracting the opposite of the destination arrival
+		//direction (which we entered from) from the direction we left
+		//from. In this case, we leave from 2 and arrive at 3, so the
+		//opposite direction is 1. This is pointing, relatively
+		//speaking, in the same direction we left. We will keep it
+		//aligned by adding the delta between the two directions to
+		//our rotation. Delta is 1-2=-1, so rotation is 1+-1=0.
+		//
+		//Thus, the following formula breaks down like so:
+		//Inner-most brackets: Tile direction left in.
+		//Up one level: Rotatinoal delta calculation.
+		//Rest of formula: Add rotational delta to current rotation.
+		rot = (rot + (
+			Tile::oppositeEdge[link->dir()] - (direction + rot)
+		) + 4) % 4;
+		loc = link->tile();
+	}
+	
+	void move(int direction) {
+		moveCamera(direction);
+		clearScreen();
+		render(std::cout);
+	}
+};
 
 
 
@@ -510,9 +553,6 @@ int main() {
 	view.render(cout);
 
 
-
-
-
 	struct Trigger {
 		const char8_t* seq;
 		function<void()> callback;
@@ -520,7 +560,7 @@ int main() {
 	std::vector<Trigger> triggers{};
 	auto runTrigger{ [&triggers](const char8_t* cmd, int cmdlen) -> bool { //return bool means "reset" or "did consume input".
 		int commandMatchesTriggers{};
-		int trigno = 0;
+		//int trigno = 0;
 		for (auto trigger : triggers) {
 			//std::cerr
 			//	<< "comp[0]: i" << trigno++
@@ -544,56 +584,19 @@ int main() {
 		}
 		return !commandMatchesTriggers;
 	} };
-
-
-	auto moveCamera{ [&view](int direction) {
-		auto link {view.loc->getNextTile(direction + view.rot) };
-		if (!link->tile()) return;
-
-		//To get the new view rotation, consider the following example
-		//of travelling between two tiles in direction 1.
-		//
-		//  view.rot=1    view.rot=0
-		//  ┌─────┐       ┌─────┐
-		//  │  1  │ dir 1 │  0  │
-		//  │0   2│ ────→ │3   1│
-		//  │  3  │       │  2  │
-		//  └─────┘       └─────┘
-		//   tile1         tile2
-		//
-		//To calculate the new view rotation, we get our rotational
-		//delta by subtracting the opposite of the destination arrival
-		//direction (which we entered from) from the direction we left
-		//from. In this case, we leave from 2 and arrive at 3, so the
-		//opposite direction is 1. This is pointing, relatively
-		//speaking, in the same direction we left. We will keep it
-		//aligned by adding the delta between the two directions to
-		//our rotation. Delta is 1-2=-1, so rotation is 1+-1=0.
-		//
-		//Thus, the following formula breaks down like so:
-		//Inner-most brackets: Tile direction left in.
-		//Up one level: Rotatinoal delta calculation.
-		//Rest of formula: Add rotational delta to current rotation.
-		view.rot = (view.rot + (
-			Tile::oppositeEdge[link->dir()] - (direction + view.rot)
-		) + 4) % 4;
-		view.loc = link->tile();
-
-		cout << "\033c";
-		view.render(cout);
-	} };
-
+	
+	
 	//Linux arrow key sequences.
-	triggers.emplace_back(u8"[A", [&]{ moveCamera(0); }); //up
-	triggers.emplace_back(u8"[B", [&]{ moveCamera(2); }); //down
-	triggers.emplace_back(u8"[C", [&]{ moveCamera(1); }); //left
-	triggers.emplace_back(u8"[D", [&]{ moveCamera(3); }); //right
+	triggers.emplace_back(u8"[A", [&]{ view.move(0); }); //up
+	triggers.emplace_back(u8"[B", [&]{ view.move(2); }); //down
+	triggers.emplace_back(u8"[C", [&]{ view.move(1); }); //left
+	triggers.emplace_back(u8"[D", [&]{ view.move(3); }); //right
 
-	//Windows arrow key sequences.
-	triggers.emplace_back((const char8_t*)"\xE0H", [&] { moveCamera(0); }); //up
-	triggers.emplace_back((const char8_t*)"\xE0P", [&] { moveCamera(2); }); //down
-	triggers.emplace_back((const char8_t*)"\xE0M", [&] { moveCamera(1); }); //left
-	triggers.emplace_back((const char8_t*)"\xE0K", [&] { moveCamera(3); }); //right
+	//Windows arrow key sequences. (These are not valid utf8.)
+	triggers.emplace_back((const char8_t*)"\xE0H", [&] { view.move(0); }); //up
+	triggers.emplace_back((const char8_t*)"\xE0P", [&] { view.move(2); }); //down
+	triggers.emplace_back((const char8_t*)"\xE0M", [&] { view.move(1); }); //left
+	triggers.emplace_back((const char8_t*)"\xE0K", [&] { view.move(3); }); //right
 
 	auto red = Color(255, 0, 0);
 	cout << red << "\n";
