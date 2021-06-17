@@ -564,10 +564,54 @@ public:
 };
 
 
+bool stopMainLoop{ false };
+void runMainLoop(View& view, Triggers& triggers) {
+	using namespace std::chrono_literals;
+	
+	std::atomic<int> chr{ -1 };
+	std::jthread inputListener(getInputCharAsync, ref(chr));
+
+	const int maxInputBufferLength = 8;
+	int inputBuffered{ 0 };
+	char8_t inputBuffer[maxInputBufferLength]{};
+
+	std::cout << "> ";
+	while (true) {
+		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
+		int chr_ = chr.load();
+		if (chr_ >= 0) {
+			//chr_ is, presumably, a utf32 character. We use utf8 internally. Convert.
+			auto codepoints{ 4 - COUNT_LEADING_ZEROS(chr_) / 8 };
+			inputBuffered += codepoints;
+			assert(inputBuffered + 1 < maxInputBufferLength); //Last char must be reserved for 0.
+			for (; codepoints; codepoints--)
+				inputBuffer[inputBuffered - codepoints] =
+				(chr_ >> 8 * (codepoints - 1)) & 0xFF;
+
+			if (!triggers.run(inputBuffer)) {
+				inputBuffered = 0;
+				for (int i = 0; i < maxInputBufferLength; i++)
+					inputBuffer[i] = 0;
+			}
+
+			std::cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
+
+			if (!chr_ || chr_ == 4 || stopMainLoop) { //Null, ctrl-d.
+				chr = getInputCharAsync::stop;
+				break;
+			}
+			else {
+				chr = getInputCharAsync::next; //Next char.
+			}
+		}
+		std::this_thread::sleep_until(nextFrame);
+	}
+}
+
+
 
 int main() {
 	using namespace std;
-	using namespace chrono_literals;
 
 #ifdef _MSC_VER
 	SetConsoleOutputCP(CP_UTF8);
@@ -591,9 +635,11 @@ int main() {
 	cout << "Done!\n";
 
 	View view{ 20, 20, plane0.getStartingTile() };
-
-
 	view.render(cout);
+	
+	
+	auto red = Color(255, 0, 0);
+	cout << red << "\n";
 	
 	
 	Triggers triggers{};
@@ -603,60 +649,20 @@ int main() {
 	triggers.add(u8"[B", [&]{ view.move(2); }); //down
 	triggers.add(u8"[C", [&]{ view.move(1); }); //left
 	triggers.add(u8"[D", [&]{ view.move(3); }); //right
-
+	
 	//Windows arrow key sequences. (These are not valid utf8.)
 	triggers.add((const char8_t*)"\xE0H", [&] { view.move(0); }); //up
 	triggers.add((const char8_t*)"\xE0P", [&] { view.move(2); }); //down
 	triggers.add((const char8_t*)"\xE0M", [&] { view.move(1); }); //left
 	triggers.add((const char8_t*)"\xE0K", [&] { view.move(3); }); //right
-
-	auto red = Color(255, 0, 0);
-	cout << red << "\n";
-
-
-	bool doQuitGame{ false };
-	triggers.add(u8"q", [&]() { doQuitGame = true; });
-	triggers.add(u8"", [&]() { doQuitGame = true; }); //windows, ctrl-c
-
-	atomic<int> chr{ -1 };
-	jthread inputListener(getInputCharAsync, ref(chr));
-
-	const int maxInputBufferLength = 8;
-	int inputBuffered{ 0 };
-	char8_t inputBuffer[maxInputBufferLength]{};
-
-	cout << "> ";
-	while (true) {
-		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
-		int chr_ = chr.load();
-		if (chr_ >= 0) {
-			//chr_ is, presumably, a utf32 character. We use utf8 internally. Convert.
-			auto codepoints{ 4 - COUNT_LEADING_ZEROS(chr_) / 8 };
-			inputBuffered += codepoints;
-			assert(inputBuffered + 1 < maxInputBufferLength); //Last char must be reserved for 0.
-			for (; codepoints; codepoints--)
-				inputBuffer[inputBuffered - codepoints] =
-				(chr_ >> 8 * (codepoints - 1)) & 0xFF;
-
-			if (!triggers.run(inputBuffer)) {
-				inputBuffered = 0;
-				for (int i = 0; i < maxInputBufferLength; i++)
-					inputBuffer[i] = 0;
-			}
-
-			cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
-
-			if (!chr_ || chr_ == 4 || doQuitGame) { //Null, ctrl-d.
-				chr = getInputCharAsync::stop;
-				break;
-			}
-			else {
-				chr = getInputCharAsync::next; //Next char.
-			}
-		}
-		std::this_thread::sleep_until(nextFrame);
-	}
-
+	
+	triggers.add(u8"q", [&]() { stopMainLoop = true; });
+	triggers.add(u8"", [&]() { stopMainLoop = true; }); //windows, ctrl-c
+	
+	
+	runMainLoop(view, triggers);
+	
+	
 	cout << "Good-bye.\n";
 	return 0;
 }
