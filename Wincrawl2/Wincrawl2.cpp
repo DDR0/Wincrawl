@@ -16,6 +16,8 @@
 #include <windows.h>
 #endif
 
+#include "hsluv.h"
+
 #include "io.cpp"
 
 #ifdef _MSC_VER
