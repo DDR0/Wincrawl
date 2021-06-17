@@ -522,6 +522,47 @@ public:
 
 
 
+class Triggers {
+	typedef bool isPartialCommand;
+	
+	struct Trigger {
+		const char8_t* seq;
+		const std::function<void()> callback;
+	};
+	
+	std::vector<Trigger> triggers{};
+	
+	
+public:
+	//If you're feeding a character stream buffer to run(...), isPartialCommand can be
+	//used to decide to wait for more characters to be added to the buffer.
+	const isPartialCommand run(const char8_t* cmd) {
+		const char* command = reinterpret_cast<const char*>(cmd); //Cast for str* functions - it's safe, and we only care about byte-level compatability in this case.
+		
+		int commandMatchesTriggers{ false };
+		for (auto trigger : this->triggers) {
+			const char* triggerName = reinterpret_cast<const char*>(trigger.seq);
+			
+			//Command should be fully equal to run the cb - the full match is needed to absorb all of an escape sequence which could be unique by the second character.
+			if (!strcmp(triggerName, command)) {
+				trigger.callback();
+				return false;
+			}
+			
+			//Otherwise, mark if our command was equal to part of a trigger. It could be completed in the future.
+			commandMatchesTriggers |=
+				!strncmp(triggerName, command, strlen(command));
+		}
+		return commandMatchesTriggers;
+	}
+	
+	void add(const char8_t* seq, const std::function<void()> callback) {
+		this->triggers.emplace_back(seq, callback);
+	}
+};
+
+
+
 int main() {
 	using namespace std;
 	using namespace chrono_literals;
@@ -551,60 +592,29 @@ int main() {
 
 
 	view.render(cout);
-
-
-	struct Trigger {
-		const char8_t* seq;
-		function<void()> callback;
-	};
-	std::vector<Trigger> triggers{};
-	auto runTrigger{ [&triggers](const char8_t* cmd, int cmdlen) -> bool { //return bool means "reset" or "did consume input".
-		int commandMatchesTriggers{};
-		//int trigno = 0;
-		for (auto trigger : triggers) {
-			//std::cerr
-			//	<< "comp[0]: i" << trigno++
-			//	<< " cmd " << (int) *reinterpret_cast<const uint8_t*>(cmd)
-			//	<< " against " << (int) *reinterpret_cast<const uint8_t*>(trigger.seq) << "\n";
-
-			const bool partiallyEqual{ !strncmp(
-				reinterpret_cast<const char*>(trigger.seq),
-				reinterpret_cast<const char*>(cmd),
-				cmdlen
-			) };
-			commandMatchesTriggers += partiallyEqual;
-
-			if (!strcmp( //Fully equal, run the cb - must be a full match to absorb all of an escape sequence which could be unique by the second character.
-				reinterpret_cast<const char*>(trigger.seq),
-				reinterpret_cast<const char*>(cmd)
-			)) {
-				trigger.callback();
-				return true;
-			}
-		}
-		return !commandMatchesTriggers;
-	} };
 	
+	
+	Triggers triggers{};
 	
 	//Linux arrow key sequences.
-	triggers.emplace_back(u8"[A", [&]{ view.move(0); }); //up
-	triggers.emplace_back(u8"[B", [&]{ view.move(2); }); //down
-	triggers.emplace_back(u8"[C", [&]{ view.move(1); }); //left
-	triggers.emplace_back(u8"[D", [&]{ view.move(3); }); //right
+	triggers.add(u8"[A", [&]{ view.move(0); }); //up
+	triggers.add(u8"[B", [&]{ view.move(2); }); //down
+	triggers.add(u8"[C", [&]{ view.move(1); }); //left
+	triggers.add(u8"[D", [&]{ view.move(3); }); //right
 
 	//Windows arrow key sequences. (These are not valid utf8.)
-	triggers.emplace_back((const char8_t*)"\xE0H", [&] { view.move(0); }); //up
-	triggers.emplace_back((const char8_t*)"\xE0P", [&] { view.move(2); }); //down
-	triggers.emplace_back((const char8_t*)"\xE0M", [&] { view.move(1); }); //left
-	triggers.emplace_back((const char8_t*)"\xE0K", [&] { view.move(3); }); //right
+	triggers.add((const char8_t*)"\xE0H", [&] { view.move(0); }); //up
+	triggers.add((const char8_t*)"\xE0P", [&] { view.move(2); }); //down
+	triggers.add((const char8_t*)"\xE0M", [&] { view.move(1); }); //left
+	triggers.add((const char8_t*)"\xE0K", [&] { view.move(3); }); //right
 
 	auto red = Color(255, 0, 0);
 	cout << red << "\n";
 
 
 	bool doQuitGame{ false };
-	triggers.emplace_back(u8"q", [&]() { doQuitGame = true; });
-	triggers.emplace_back(u8"", [&]() { doQuitGame = true; }); //windows, ctrl-c
+	triggers.add(u8"q", [&]() { doQuitGame = true; });
+	triggers.add(u8"", [&]() { doQuitGame = true; }); //windows, ctrl-c
 
 	atomic<int> chr{ -1 };
 	jthread inputListener(getInputCharAsync, ref(chr));
@@ -626,7 +636,7 @@ int main() {
 				inputBuffer[inputBuffered - codepoints] =
 				(chr_ >> 8 * (codepoints - 1)) & 0xFF;
 
-			if (runTrigger(inputBuffer, inputBuffered)) {
+			if (!triggers.run(inputBuffer)) {
 				inputBuffered = 0;
 				for (int i = 0; i < maxInputBufferLength; i++)
 					inputBuffer[i] = 0;
