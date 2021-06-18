@@ -1,11 +1,13 @@
 #include <chrono>
 #include <thread>
 
+#include "io.hpp"
+
 #ifdef _MSC_VER
 #include <windows.h>
 #include <conio.h>
 
-inline int getInputChar() {
+int getInputChar() {
 	return _getch();
 };
 
@@ -41,8 +43,7 @@ int getInputChar(void) {
 
 
 //Wrap above in a little read loop, to be called as a thread.
-enum getInputCharAsync { next = -1, stop = -2 };
-inline void getInputCharAsync(std::atomic<int>& value) {
+void getInputCharAsync(std::atomic<int>& value) {
 	using namespace std::chrono_literals;
 
 	while (true) { //-2 is "exit", -1 is "ready for next char".

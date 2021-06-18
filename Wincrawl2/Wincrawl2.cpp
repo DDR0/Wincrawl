@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdio>
 #include <iostream>
+#include <cmath>
 #include <memory>
 #include <span>
 #include <sstream>
@@ -17,8 +18,7 @@
 #endif
 
 #include "hsluv.h"
-
-#include "io.cpp"
+#include "io.hpp"
 
 #ifdef _MSC_VER
 //unsigned int _lzcnt_u32 (unsigned int a)
@@ -38,6 +38,9 @@ void clearScreen() { std::cout << "\033c"; }
 class Color {
 	uint8_t channels[3]{};
 public:
+	struct RGB { uint8_t r; uint8_t g; uint8_t b; };
+	struct HSL { double h; double s; double l; };
+	
 	Color(uint8_t r, uint8_t g, uint8_t b) : channels{ r, g, b } {}
 	Color(Color& other) : channels{ other[0], other[1], other[2] } {}
 
@@ -47,8 +50,17 @@ public:
 		channels[2] = b;
 	}
 
-	uint8_t* rgb() {
-		return channels;
+	RGB rgb() const {
+		return RGB(channels[0], channels[1], channels[2]);
+	}
+
+	HSL hsl() const {
+		HSL newcolour;
+		rgb2hsluv(
+			channels[0]/255., channels[1]/255., channels[2]/255., 
+			&newcolour.h, &newcolour.s, &newcolour.l
+		);
+		return newcolour;
 	}
 
 	Color& operator=(const Color& other) {
@@ -68,16 +80,17 @@ public:
 	}
 
 	friend auto operator<<(std::ostream& os, Color const& color) -> std::ostream& {
+		const HSL hsl = color.hsl();
 		return os
 			<< "Color(" //display values
-			<< std::to_string(color[0]) << ","
-			<< std::to_string(color[1]) << ","
-			<< std::to_string(color[2]) << ")"
+			<< std::to_string(int(std::round(hsl.h))) << ","
+			<< std::to_string(int(std::round(hsl.s))) << ","
+			<< std::to_string(int(std::round(hsl.l))) << ")"
 
 			<< "[38;2;" //display color
 			<< std::to_string(color[0]) << ";"
 			<< std::to_string(color[1]) << ";"
-			<< std::to_string(color[2]) << "m██[0m";
+			<< std::to_string(color[2]) << "m﹅[0m";
 	}
 };
 
@@ -638,8 +651,8 @@ int main() {
 	view.render(cout);
 	
 	
-	auto red = Color(255, 0, 0);
-	cout << red << "\n";
+	auto aColor = Color(0xe6, 0x55, 0x51);
+	cout << aColor << "\n";
 	
 	
 	Triggers triggers{};
