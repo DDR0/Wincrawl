@@ -41,7 +41,31 @@ public:
 	struct RGB { uint8_t r; uint8_t g; uint8_t b; };
 	struct HSL { double h; double s; double l; };
 	
-	Color(uint8_t r, uint8_t g, uint8_t b) : channels{ r, g, b } {}
+	Color(uint32_t rgb) : channels { 
+		static_cast<uint8_t>(rgb>>8),
+		static_cast<uint8_t>(rgb>>4&0xFF),
+		static_cast<uint8_t>(rgb&0xFF)
+	} { assert(rgb <= 0xffffff); }
+	
+	Color(RGB other) : channels{ other.r, other.g, other.b } {}
+	
+	Color(double h, double s, double l) {
+		double channelsIn[3];
+		hsluv2rgb(h, s, l,
+			&channelsIn[0], &channelsIn[1], &channelsIn[2]);
+		
+		for (int i = 0; i < 3; ++i)
+			channels[i] = int(std::round(channelsIn[i]*255));
+	}
+	
+	Color(HSL other) {
+		double channelsIn[3];
+		hsluv2rgb(other.h, other.s, other.l,
+			&channelsIn[0], &channelsIn[1], &channelsIn[2]);
+		
+		for (int i = 0; i < 3; ++i)
+			channels[i] = int(std::round(channelsIn[i]*255));
+	}
 	Color(Color& other) : channels{ other[0], other[1], other[2] } {}
 
 	void set(uint8_t r, uint8_t g, uint8_t b) {
@@ -74,7 +98,7 @@ public:
 		return channels[i];
 	}
 
-	const uint8_t operator[](size_t i) const {
+	uint8_t operator[](size_t i) const {
 		assert(i < 3);
 		return channels[i];
 	}
@@ -651,8 +675,12 @@ int main() {
 	view.render(cout);
 	
 	
-	auto aColor = Color(0xe6, 0x55, 0x51);
+	auto aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
 	cout << aColor << "\n";
+	auto bColor = Color(33, 91, 56);
+	cout << bColor << "\n";
+	auto cColor = Color(0x6d83cf);
+	cout << cColor << "\n";
 	
 	
 	Triggers triggers{};
