@@ -1,17 +1,20 @@
-﻿#include <atomic>
+﻿#include <array>
+#include <atomic>
 #include <cassert>
-#include <csignal>
-#include <cstring>
 #include <chrono>
-#include <cstdio>
-#include <iostream>
 #include <cmath>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <span>
 #include <sstream>
+#include <string>
 #include <thread>
 #include <vector>
-#include <functional>
 
 #ifdef _MSC_VER
 #include <windows.h>
@@ -31,15 +34,19 @@
 
 #define dbg std::raise(SIGINT)
 
-
-void clearScreen() { std::cout << "\033c"; }
-
+struct seq {
+	inline static const char* clear { "c" };
+	inline static const char* reset { "[0m" };
+};
 
 class Color {
+	//Encapsulate https://www.hsluv.org/ in a convenient wrapper.
 	uint8_t channels[3]{};
 public:
 	struct RGB { uint8_t r; uint8_t g; uint8_t b; };
 	struct HSL { double h; double s; double l; };
+	
+	Color() : channels{0, 0, 0} {}
 	
 	Color(uint32_t rgb) : channels { 
 		static_cast<uint8_t>(rgb>>8),
@@ -68,10 +75,19 @@ public:
 	}
 	Color(Color& other) : channels{ other[0], other[1], other[2] } {}
 
-	void set(uint8_t r, uint8_t g, uint8_t b) {
+	void rgb(uint8_t r, uint8_t g, uint8_t b) {
 		channels[0] = r;
 		channels[1] = g;
 		channels[2] = b;
+	}
+	
+	void hsl(double h, double s, double l) {
+		double channelsIn[3];
+		hsluv2rgb(h, s, l,
+			&channelsIn[0], &channelsIn[1], &channelsIn[2]);
+		
+		for (int i = 0; i < 3; ++i)
+			channels[i] = int(std::round(channelsIn[i]*255));
 	}
 
 	RGB rgb() const {
@@ -106,7 +122,7 @@ public:
 	friend auto operator<<(std::ostream& os, Color const& color) -> std::ostream& {
 		const HSL hsl = color.hsl();
 		return os
-			<< "Color(" //display values
+			<< "HSLuv(" //display values
 			<< std::to_string(int(std::round(hsl.h))) << ","
 			<< std::to_string(int(std::round(hsl.s))) << ","
 			<< std::to_string(int(std::round(hsl.l))) << ")"
@@ -116,38 +132,54 @@ public:
 			<< std::to_string(color[1]) << ";"
 			<< std::to_string(color[2]) << "m﹅[0m";
 	}
+	
+	const std::string fg() const {
+		return "[38;2;"
+			+ std::to_string(this->channels[0]) + ";"
+			+ std::to_string(this->channels[1]) + ";"
+			+ std::to_string(this->channels[2]) + "m";
+	}
+	
+	const std::string bg() const {
+		return "[48;2;"
+			+ std::to_string(this->channels[0]) + ";"
+			+ std::to_string(this->channels[1]) + ";"
+			+ std::to_string(this->channels[2]) + "m";
+	}
+};
+
+
+class Tile;
+class Link {
+	//A link is another tile we're linking to, and the direction we enter it by.
+
+	Tile* tile_ = nullptr; //Link destination.
+	uint8_t dir_ = 0; //Destination direction in which we emerge. Our entry in its links.
+
+public:
+	Tile* tile() const { return tile_; };
+	uint8_t dir() const { return dir_; };
+
+	void set(Tile* tile, uint8_t dir) {
+		this->tile_ = tile;
+		this->dir_ = dir;
+	}
+
+	void set(Link const& link) {
+		this->tile_ = link.tile();
+		this->dir_ = link.dir();
+	}
 };
 
 
 class Tile {
 	//A tile is a square place in a plane.
 
-	class Link {
-		//A link is another tile we're linking to, and the direction we enter it by.
-
-		Tile* tile_ = nullptr; //Link destination.
-		uint8_t dir_ = 0; //Destination direction in which we emerge. Our entry in its links.
-
-	public:
-		Tile* tile() const { return tile_; };
-		uint8_t dir() const { return dir_; };
-
-		void set(Tile* tile, uint8_t dir) {
-			this->tile_ = tile;
-			this->dir_ = dir;
-		}
-
-		void set(Link const& link) {
-			this->tile_ = link.tile();
-			this->dir_ = link.dir();
-		}
-	};
-
 	inline static uint_fast16_t TotalTilesCreated;
 	const uint_fast16_t id{ 0 };
 
 public:
-	//Now, let's define some geometry. For edges 0, 1, 2, 3, 4, 5:
+	//Let's define some geometry. For edges 0, 1, 2, 3, 4, 5:
 	static constexpr uint8_t oppositeEdge[6]{ 2, 3, 0, 1, 5, 4 };
 	static constexpr uint8_t rotateCW[6]{ 1, 2, 3, 0, 1, 3 }; //Rotate around the Z axis, ie, top-down.
 	static constexpr uint8_t rotateCCW[6]{ 3, 0, 1, 2, 3, 1 }; //Going around a corner from the top will land you "facing" east or west, although it could just as easily be north and south as your rotation isn't tracked.
@@ -156,8 +188,10 @@ public:
 	//However, if it helps, you can think of the links array as being such where N=0.
 	Link links[6]{};
 	uint8_t roomId{ 0 }; //0=uninitialized, 1=hidden, 2=empty, 9=hallway, 10≥rooms
-	const char8_t* glyph{ u8" " }; //String, 4 bytes + null terminator for utf8 astral plane characters.
+	const char* glyph{ " " }; //String, 4 bytes + null terminator for utf8 astral plane characters.
 	bool isOpaque{ false };
+	Color bgColor{ 0, 0, 0 };
+	Color fgColor{ 0, 0, 100 };
 
 	Tile() : id(TotalTilesCreated++) {}
 
@@ -259,54 +293,27 @@ public:
 
 class Plane {
 	//A plane is a collection of tiles, which are formed into rooms.
-
+	
 	inline static uint_fast16_t TotalPlanesCreated{ 0 };
 	const uint_fast16_t id{ 0 };
 
 	std::vector<Tile*> tiles; //List of all tiles we created.
-	std::vector<Tile*> roomSeeds;
+	
+	struct Room {
+		Tile* seed;
+		std::vector<Link*> connections;
+	};
+	std::vector<Room> rooms {};
+	
 
 public:
-	Plane(uint16_t rooms)
+	Plane(uint16_t numRooms)
 		: id(TotalPlanesCreated++)
 	{
-		constexpr uint8_t roomX{ 5 };
-		constexpr uint8_t roomY{ 7 };
-		Tile* room[roomX][roomY] = {};
-
-		for (uint8_t x = 0; x < roomX; x++) {
-			for (uint8_t y = 0; y < roomY; y++) {
-				Tile* tile{ new Tile() };
-				tile->roomId = 10;
-				tile->glyph = (x + y) % 2 ? u8"," : u8".";
-
-				tiles.push_back(tile);
-				room[x][y] = tile;
-			}
-		}
-
-		for (uint8_t x = 0; x < roomX - 0; x++) { //-0 to loop, -1 to not
-			for (uint8_t y = 0; y < roomY; y++) {
-				room[x][y]->link(room[(x + 1) % roomX][y], 1);
-			}
-		}
-
-		for (uint8_t x = 0; x < roomX; x++) {
-			for (uint8_t y = 0; y < roomY - 1; y++) {
-				room[x][y]->link(room[x][(y + 1) % roomY], 2);
-			}
-		}
-
-		for (uint8_t y = 0; y < roomY; y++) {
-			for (uint8_t x = 0; x < roomX; x++) {
-				std::cerr << room[x][y]->getIDStr() << " ";
-			}
-			std::cerr << "\n";
-		}
-
+		rooms.emplace_back(genSquareRoom(10, 5, false, false, Color{217.7, 62.6, 60.9}));
+		
 		//A statue of a person, let's say.
-		roomSeeds.push_back(room[2][3]);
-		//room[2][3]->glyph = u8"@";
+		//room[2][3]->glyph = "@";
 		//room[2][3]->isOpaque = true;
 	}
 
@@ -331,7 +338,51 @@ public:
 	}
 
 	Tile* getStartingTile() {
-		return roomSeeds[0];
+		return rooms[0].seed;
+	}
+	
+	Room genSquareRoom(
+		const uint8_t roomX, const uint8_t roomY, 
+		const bool wrapX = false, const bool wrapY = false,
+		const Color fg = Color{0,0,100}, const Color bg = Color{0,0,0} 
+	) {
+		Tile* room[roomX][roomY] = {};
+
+		for (uint8_t x = 0; x < roomX; x++) {
+			for (uint8_t y = 0; y < roomY; y++) {
+				Tile* tile{ new Tile() };
+				tiles.push_back(tile);
+				room[x][y] = tile;
+				
+				tile->roomId = 10;
+				tile->glyph = (x + y) % 2 ? "," : ".";
+				tile->fgColor = fg;
+				tile->bgColor = bg;
+			}
+		}
+
+		for (uint8_t x = 0; x < roomX - (!wrapX); x++) { //-0 to loop, -1 to not
+			for (uint8_t y = 0; y < roomY; y++) {
+				room[x][y]->link(room[(x + 1) % roomX][y], 1);
+			}
+		}
+
+		for (uint8_t x = 0; x < roomX; x++) {
+			for (uint8_t y = 0; y < roomY - (!wrapY); y++) { //-0 to loop, -1 to not
+				room[x][y]->link(room[x][(y + 1) % roomY], 2);
+			}
+		}
+		
+		std::vector<Link*> connections {};
+		if (!wrapX) {
+			connections.push_back(&room[      0][roomY/2]->links[3]);
+			connections.push_back(&room[roomX-1][roomY/2]->links[1]);
+		}
+		if (!wrapY) {
+			connections.push_back(&room[roomX/2][      0]->links[3]);
+			connections.push_back(&room[roomX/2][roomY-1]->links[1]);
+		}
+		return Room{room[roomX/2][roomY/2], connections};
 	}
 };
 
@@ -418,6 +469,7 @@ class View {
 
 	uint8_t viewSize[2];
 	std::vector<std::vector<Tile*>> grid;
+	inline static Tile tempAvatar{};
 	inline static Tile hiddenTile{};
 	inline static Tile emptyTile{};
 
@@ -439,10 +491,12 @@ public:
 			grid[x].assign(height, nullptr);
 		}
 
+		tempAvatar.roomId = 0;
+		tempAvatar.glyph = "@";
 		hiddenTile.roomId = 1;
-		hiddenTile.glyph = u8"░";
+		hiddenTile.glyph = "░";
 		emptyTile.roomId = 2;
-		emptyTile.glyph = u8"▓";
+		emptyTile.glyph = "▓";
 	}
 
 	void render(std::ostream& target) {
@@ -473,11 +527,14 @@ public:
 			}
 		}
 		//this->raytrace(rayWalker, viewloc[0], viewloc[1], viewSize[0]-1, 0);
-		grid[viewloc[0]][viewloc[1]] = loc;
+		grid[viewloc[0]][viewloc[1]] = &tempAvatar;
 
 		for (int y = 0; y < viewSize[1]; y++) {
 			for (int x = 0; x < viewSize[0]; x++) {
-				target << reinterpret_cast<const char*>(grid[x][y]->glyph);
+				target
+					<< grid[x][y]->fgColor.fg() << grid[x][y]->bgColor.bg()
+					<< reinterpret_cast<const char*>(grid[x][y]->glyph)
+					<< seq::reset;
 				//target << grid[x][y]->getIDStr();
 			}
 			target << "\n";
@@ -554,7 +611,7 @@ public:
 	
 	void move(int direction) {
 		moveCamera(direction);
-		clearScreen();
+		std::cout << seq::clear;
 		render(std::cout);
 	}
 };
@@ -565,7 +622,7 @@ class Triggers {
 	typedef bool isPartialCommand;
 	
 	struct Trigger {
-		const char8_t* seq;
+		const char* seq;
 		const std::function<void()> callback;
 	};
 	
@@ -575,7 +632,7 @@ class Triggers {
 public:
 	//If you're feeding a character stream buffer to run(...), isPartialCommand can be
 	//used to decide to wait for more characters to be added to the buffer.
-	const isPartialCommand run(const char8_t* cmd) {
+	const isPartialCommand run(const char* cmd) {
 		const char* command = reinterpret_cast<const char*>(cmd); //Cast for str* functions - it's safe, and we only care about byte-level compatability in this case.
 		
 		int commandMatchesTriggers{ false };
@@ -595,7 +652,7 @@ public:
 		return commandMatchesTriggers;
 	}
 	
-	void add(const char8_t* seq, const std::function<void()> callback) {
+	void add(const char* seq, const std::function<void()> callback) {
 		this->triggers.emplace_back(seq, callback);
 	}
 };
@@ -610,7 +667,7 @@ void runMainLoop(View& view, Triggers& triggers) {
 
 	const int maxInputBufferLength = 8;
 	int inputBuffered{ 0 };
-	char8_t inputBuffer[maxInputBufferLength]{};
+	char inputBuffer[maxInputBufferLength]{};
 
 	std::cout << "> ";
 	while (true) {
@@ -677,7 +734,7 @@ int main() {
 	
 	auto aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
 	cout << aColor << "\n";
-	auto bColor = Color(33, 91, 56);
+	auto bColor = Color(305, 91, 56);
 	cout << bColor << "\n";
 	auto cColor = Color(0x6d83cf);
 	cout << cColor << "\n";
@@ -686,19 +743,19 @@ int main() {
 	Triggers triggers{};
 	
 	//Linux arrow key sequences.
-	triggers.add(u8"[A", [&]{ view.move(0); }); //up
-	triggers.add(u8"[B", [&]{ view.move(2); }); //down
-	triggers.add(u8"[C", [&]{ view.move(1); }); //left
-	triggers.add(u8"[D", [&]{ view.move(3); }); //right
+	triggers.add("[A", [&]{ view.move(0); }); //up
+	triggers.add("[B", [&]{ view.move(2); }); //down
+	triggers.add("[C", [&]{ view.move(1); }); //left
+	triggers.add("[D", [&]{ view.move(3); }); //right
 	
 	//Windows arrow key sequences. (These are not valid utf8.)
-	triggers.add((const char8_t*)"\xE0H", [&] { view.move(0); }); //up
-	triggers.add((const char8_t*)"\xE0P", [&] { view.move(2); }); //down
-	triggers.add((const char8_t*)"\xE0M", [&] { view.move(1); }); //left
-	triggers.add((const char8_t*)"\xE0K", [&] { view.move(3); }); //right
+	triggers.add((const char*)"\xE0H", [&] { view.move(0); }); //up
+	triggers.add((const char*)"\xE0P", [&] { view.move(2); }); //down
+	triggers.add((const char*)"\xE0M", [&] { view.move(1); }); //left
+	triggers.add((const char*)"\xE0K", [&] { view.move(3); }); //right
 	
-	triggers.add(u8"q", [&]() { stopMainLoop = true; });
-	triggers.add(u8"", [&]() { stopMainLoop = true; }); //windows, ctrl-c
+	triggers.add("q", [&]() { stopMainLoop = true; });
+	triggers.add("", [&]() { stopMainLoop = true; }); //windows, ctrl-c
 	
 	
 	runMainLoop(view, triggers);
