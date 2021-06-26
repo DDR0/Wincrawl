@@ -299,52 +299,22 @@ class Plane {
 
 	std::vector<Tile*> tiles; //List of all tiles we created.
 	
+	struct RoomConnection {
+		Tile* tile;
+		int8_t dir;
+	};
+	
 	struct Room {
 		Tile* seed;
-		std::vector<Link*> connections;
+		std::vector<RoomConnection> connections;
 	};
 	std::vector<Room> rooms {};
-	
-
-public:
-	Plane(uint16_t numRooms)
-		: id(TotalPlanesCreated++)
-	{
-		rooms.emplace_back(genSquareRoom(10, 5, false, false, Color{217.7, 62.6, 60.9}));
-		
-		//A statue of a person, let's say.
-		//room[2][3]->glyph = "@";
-		//room[2][3]->isOpaque = true;
-	}
-
-	~Plane() {
-		for (auto tile : tiles) {
-			delete tile;
-		}
-	}
-
-	friend auto operator<<(std::ostream& os, Plane const& plane) -> std::ostream& {
-		os << "Plane " << plane.id << ":\n\t";
-
-		int tcount{};
-		for (auto tile : plane.tiles) {
-			os << *tile << ", ";
-			if (not (++tcount % 5) && tcount != (int)plane.tiles.size()) {
-				os << "\n\t";
-			}
-		}
-
-		return os << "\n";
-	}
-
-	Tile* getStartingTile() {
-		return rooms[0].seed;
-	}
 	
 	Room genSquareRoom(
 		const uint8_t roomX, const uint8_t roomY, 
 		const bool wrapX = false, const bool wrapY = false,
-		const Color fg = Color{0,0,100}, const Color bg = Color{0,0,0} 
+		const Color fg = Color{0,0,100},
+		const Color bg = Color{0,0,0}
 	) {
 		Tile* room[roomX][roomY] = {};
 
@@ -373,16 +343,64 @@ public:
 			}
 		}
 		
-		std::vector<Link*> connections {};
+		std::vector<RoomConnection> connections {};
 		if (!wrapX) {
-			connections.push_back(&room[      0][roomY/2]->links[3]);
-			connections.push_back(&room[roomX-1][roomY/2]->links[1]);
+			connections.emplace_back(room[      0][roomY/2], 3);
+			connections.emplace_back(room[roomX-1][roomY/2], 1);
 		}
 		if (!wrapY) {
-			connections.push_back(&room[roomX/2][      0]->links[3]);
-			connections.push_back(&room[roomX/2][roomY-1]->links[1]);
+			connections.emplace_back(room[roomX/2][      0], 2);
+			connections.emplace_back(room[roomX/2][roomY-1], 0);
 		}
 		return Room{room[roomX/2][roomY/2], connections};
+	}
+	
+
+public:
+	Plane(uint16_t numRooms)
+		: id(TotalPlanesCreated++)
+	{
+		rooms.emplace_back(genSquareRoom(10, 5, true, false, Color{217, 62, 60}));
+		rooms.emplace_back(genSquareRoom(10, 5, false, false, Color{146, 62, 60}));
+		
+		RoomConnection doorA1{ rooms.front().connections.front() };
+		RoomConnection doorA2{ rooms.front().connections.back() };
+		RoomConnection doorB1{ rooms.back().connections.front() };
+		RoomConnection doorB2{ rooms.back().connections.back() };
+		
+		doorA1.tile->link(doorB2.tile, doorB2.dir, doorA1.dir);
+		//doorA2.tile->link(doorB1.tile, doorB1.dir, doorA2.dir);
+		Tile* hallway{ new Tile() };
+		tiles.push_back(hallway);
+		doorA1.tile->insert(hallway, doorB2.dir);
+		
+		//A statue of a person, let's say.
+		//room[2][3]->glyph = "@";
+		//room[2][3]->isOpaque = true;
+	}
+
+	~Plane() {
+		for (auto tile : tiles) {
+			delete tile;
+		}
+	}
+
+	friend auto operator<<(std::ostream& os, Plane const& plane) -> std::ostream& {
+		os << "Plane " << plane.id << ":\n\t";
+
+		size_t tcount{};
+		for (auto tile : plane.tiles) {
+			os << *tile << ", ";
+			if (not (++tcount % 5) && tcount != plane.tiles.size()) {
+				os << "\n\t";
+			}
+		}
+
+		return os << "\n";
+	}
+
+	Tile* getStartingTile() {
+		return rooms.at(0).seed;
 	}
 };
 
