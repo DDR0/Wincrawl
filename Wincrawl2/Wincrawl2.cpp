@@ -37,6 +37,7 @@
 struct seq {
 	inline static const char* clear { "c" };
 	inline static const char* reset { "[0m" };
+	inline static const char* bold  { "[1m" };
 };
 
 class Color {
@@ -49,8 +50,8 @@ public:
 	Color() : channels{0, 0, 0} {}
 	
 	Color(uint32_t rgb) : channels { 
-		static_cast<uint8_t>(rgb>>8),
-		static_cast<uint8_t>(rgb>>4&0xFF),
+		static_cast<uint8_t>(rgb>>16),
+		static_cast<uint8_t>(rgb>>8&0xFF),
 		static_cast<uint8_t>(rgb&0xFF)
 	} { assert(rgb <= 0xffffff); }
 	
@@ -194,6 +195,19 @@ public:
 	Color fgColor{ 0, 0, 100 };
 
 	Tile() : id(TotalTilesCreated++) {}
+	
+	std::string getListLinks(int8_t hightlightIndex = -1) {
+		std::stringstream out;
+		out << "Connections:";
+		for (int i = 0; i < 6; i++) {
+			out << " "
+				<< Color(this->links[i].tile() ? 0xF9343E : 0x20943E).fg()
+				<< (i == hightlightIndex ? seq::bold : "")
+				<< i << seq::reset
+				<< (i == hightlightIndex ? "̲" : "");
+		}
+		return out.str();
+	}
 
 	friend auto operator<<(std::ostream& os, Tile const& tile) -> std::ostream& {
 		os << "Tile " << tile.id << " (";
@@ -221,9 +235,39 @@ public:
 		assert(other);
 		assert(indexOut >= 0 && indexOut < 6); //Direction index out of this tile must be specified.
 		assert(indexIn >= 0 && indexIn < 6);
-		assert(!this->links[indexOut].tile()); //Don't allow resetting tile links here? Use insert for that. (Prevent one-way links. Jumps in perspective are not desired, you can always go back.)
-		assert(!other->links[indexIn].tile());
-
+		
+		#ifndef NDEBUG
+		//Don't allow resetting tile links here? Use insert for that. (Prevent one-way links. Jumps in perspective are not desired, you can always go back.)
+		//This is more than just an assert because knowing **how** we messed up the linking is very helpful for development.
+		const bool badLink {
+			this->links[indexOut].tile() or
+			other->links[indexIn].tile()
+		};
+		if (badLink) {
+			std::cerr << "\nTile Link Error\n";
+			
+			std::cerr << "Tile " << this->getIDStr() << " indexOut " << (int)indexOut;
+			if (this->links[indexOut].tile()) {
+				std::cerr << " already points to tile "
+					<< this->links[indexOut].tile()->getIDStr() << ".\n";
+			} else {
+				std::cerr << " clear.\n";
+			}
+			std::cerr << (this->getListLinks(indexOut)) << "\n";
+			
+			std::cerr << "Tile " << other->getIDStr() << " indexOut " << (int)indexIn;
+			if (other->links[indexIn].tile()) {
+				std::cerr << " already points to tile "
+					<< other->links[indexIn].tile()->getIDStr() << ".\n";
+			} else {
+				std::cerr << "clear.\n";
+			}
+			std::cerr << other->getListLinks(indexIn) << "\n\n";
+			
+			assert(false);
+		}
+		#endif
+		
 		other->links[indexIn].set(this, indexOut);
 		this->links[indexOut].set(other, indexIn);
 	}
@@ -320,8 +364,7 @@ class Plane {
 
 		for (uint8_t x = 0; x < roomX; x++) {
 			for (uint8_t y = 0; y < roomY; y++) {
-				Tile* tile{ new Tile() };
-				tiles.push_back(tile);
+				Tile* tile{ tiles.emplace_back(new Tile()) };
 				room[x][y] = tile;
 				
 				tile->roomId = 10;
@@ -345,13 +388,19 @@ class Plane {
 		
 		std::vector<RoomConnection> connections {};
 		if (!wrapX) {
-			connections.emplace_back(room[      0][roomY/2], 3);
 			connections.emplace_back(room[roomX-1][roomY/2], 1);
+			connections.emplace_back(room[      0][roomY/2], 3);
 		}
 		if (!wrapY) {
-			connections.emplace_back(room[roomX/2][      0], 2);
-			connections.emplace_back(room[roomX/2][roomY-1], 0);
+			connections.emplace_back(room[roomX/2][      0], 0);
+			connections.emplace_back(room[roomX/2][roomY-1], 2);
 		}
+		
+		std::cout << "Genned room.\n";
+		for (auto c : connections) {
+			std::cout << "Tile " << c.tile->getIDStr() << ": " << c.tile->getListLinks(c.dir) << "\n";
+		}
+		
 		return Room{room[roomX/2][roomY/2], connections};
 	}
 	
@@ -368,11 +417,21 @@ public:
 		RoomConnection doorB1{ rooms.back().connections.front() };
 		RoomConnection doorB2{ rooms.back().connections.back() };
 		
-		doorA1.tile->link(doorB2.tile, doorB2.dir, doorA1.dir);
-		//doorA2.tile->link(doorB1.tile, doorB1.dir, doorA2.dir);
-		Tile* hallway{ new Tile() };
-		tiles.push_back(hallway);
-		doorA1.tile->insert(hallway, doorB2.dir);
+		std::cerr << "Linking " << doorA1.tile->getIDStr() << " " << doorA1.tile->getListLinks(doorA1.dir) << " to " << doorB2.tile->getIDStr() << " " << doorB2.tile->getListLinks(doorB2.dir) << ".\n";
+		doorA1.tile->link(doorB2.tile, doorA1.dir, doorB2.dir);
+		
+		std::cerr << "Linking " << doorA2.tile->getIDStr() << " " << doorA2.tile->getListLinks(doorA2.dir) << " to " << doorB1.tile->getIDStr() << " " << doorB1.tile->getListLinks(doorB1.dir) << ".\n";
+		doorA2.tile->link(doorB1.tile, doorA2.dir, doorB1.dir);
+		
+		Tile* hall1{ tiles.emplace_back(new Tile()) };
+		std::cerr << "Inserting from " << doorA1.tile->getIDStr() << " (" << doorA1.tile->getListLinks(doorA1.dir) << ") in " << (int)doorA1.dir << ".\n";
+		doorA1.tile->insert(hall1, doorA1.dir);
+		std::cerr << "Inserted " << hall1->getIDStr() << " " << hall1->getListLinks() << ".\n";
+		
+		Tile* hall2{ tiles.emplace_back(new Tile()) };
+		std::cerr << "Inserting from " << doorA2.tile->getIDStr() << " (" << doorA2.tile->getListLinks(doorA1.dir) << ") in " << (int)doorA2.dir << ".\n";
+		doorA2.tile->insert(hall2, doorA2.dir);
+		std::cerr << "Inserted " << hall2->getIDStr() << " " << hall2->getListLinks() << ".\n";
 		
 		//A statue of a person, let's say.
 		//room[2][3]->glyph = "@";
