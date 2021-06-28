@@ -702,6 +702,12 @@ public:
 		//std::cout << seq::clear;
 		render(std::cout);
 	}
+	
+	void turn(int delta) {
+		rot = (delta + rot + 4) % 4;
+		//std::cout << seq::clear;
+		render(std::cout);
+	}
 };
 
 
@@ -729,6 +735,7 @@ public:
 			
 			//Command should be fully equal to run the cb - the full match is needed to absorb all of an escape sequence which could be unique by the second character.
 			if (!strcmp(triggerName, command)) {
+				std::cout << "\n"; //done input, advance to new line - this probably shouldn't be here, we should return the trigger that matched instead.
 				trigger.callback();
 				return false;
 			}
@@ -769,14 +776,28 @@ void runMainLoop(View& view, Triggers& triggers) {
 			for (; codepoints; codepoints--)
 				inputBuffer[inputBuffered - codepoints] =
 				(chr_ >> 8 * (codepoints - 1)) & 0xFF;
-
+			
+			//Better output, just shows characters entered so far.
+			std::cout << "\r> ";
+			for (int i=0; inputBuffer[i]; i++) {
+				if (inputBuffer[i] < ' ') { //print symbol for control character so we can see it
+					std::string symbol{ "␀" };
+					symbol[2] += inputBuffer[i];
+					std::cout << symbol;
+				} else {
+					std::cout << inputBuffer[i];
+				}
+			}
+			
+			//Debug output, includes hex and buffer.
+			//std::cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
+			
 			if (!triggers.run(inputBuffer)) {
 				inputBuffered = 0;
 				for (int i = 0; i < maxInputBufferLength; i++)
 					inputBuffer[i] = 0;
 			}
 
-			std::cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
 
 			if (!chr_ || chr_ == 4 || stopMainLoop) { //Null, ctrl-d.
 				chr = getInputCharAsync::stop;
@@ -835,12 +856,17 @@ int main() {
 	triggers.add("[B", [&]{ view.move(2); }); //down
 	triggers.add("[C", [&]{ view.move(1); }); //left
 	triggers.add("[D", [&]{ view.move(3); }); //right
+	triggers.add("[1;3C", [&] { view.turn(+1); }); //cw
+	triggers.add("[1;3D", [&] { view.turn(-1); }); //ccw
 	
 	//Windows arrow key sequences. (These are not valid utf8.)
-	triggers.add((const char*)"\xE0H", [&] { view.move(0); }); //up
-	triggers.add((const char*)"\xE0P", [&] { view.move(2); }); //down
-	triggers.add((const char*)"\xE0M", [&] { view.move(1); }); //left
-	triggers.add((const char*)"\xE0K", [&] { view.move(3); }); //right
+	triggers.add("\xE0H", [&] { view.move(0); }); //up
+	triggers.add("\xE0P", [&] { view.move(2); }); //down
+	triggers.add("\xE0M", [&] { view.move(1); }); //left
+	triggers.add("\xE0K", [&] { view.move(3); }); //right
+	//triggers.add("???", [&] { view.turn(+1); }); //cw
+	//triggers.add("???", [&] { view.turn(-1); }); //ccw
+
 	
 	triggers.add("q", [&]() { stopMainLoop = true; });
 	triggers.add("", [&]() { stopMainLoop = true; }); //windows, ctrl-c
