@@ -196,9 +196,9 @@ public:
 
 	Tile() : id(TotalTilesCreated++) {}
 	
-	std::string getListLinks(int8_t hightlightIndex = -1) {
+	std::string listLinks(int8_t hightlightIndex = -1) {
 		std::stringstream out;
-		out << "Connections:";
+		out << "Tile " << this->getIDStr() << ":";
 		for (int i = 0; i < 6; i++) {
 			out << " "
 				<< Color(this->links[i].tile() ? 0xF9343E : 0x20943E).fg()
@@ -253,7 +253,7 @@ public:
 			} else {
 				std::cerr << " clear.\n";
 			}
-			std::cerr << (this->getListLinks(indexOut)) << "\n";
+			std::cerr << (this->listLinks(indexOut)) << "\n";
 			
 			std::cerr << "Tile " << other->getIDStr() << " indexOut " << (int)indexIn;
 			if (other->links[indexIn].tile()) {
@@ -262,7 +262,7 @@ public:
 			} else {
 				std::cerr << "clear.\n";
 			}
-			std::cerr << other->getListLinks(indexIn) << "\n\n";
+			std::cerr << other->listLinks(indexIn) << "\n\n";
 			
 			assert(false);
 		}
@@ -398,7 +398,7 @@ class Plane {
 		
 		std::cout << "Genned room.\n";
 		for (auto c : connections) {
-			std::cout << "Tile " << c.tile->getIDStr() << ": " << c.tile->getListLinks(c.dir) << "\n";
+			std::cout << "Tile " << c.tile->getIDStr() << ": " << c.tile->listLinks(c.dir) << "\n";
 		}
 		
 		return Room{room[roomX/2][roomY/2], connections};
@@ -417,21 +417,21 @@ public:
 		RoomConnection doorB1{ rooms.back().connections.front() };
 		RoomConnection doorB2{ rooms.back().connections.back() };
 		
-		std::cerr << "Linking " << doorA1.tile->getIDStr() << " " << doorA1.tile->getListLinks(doorA1.dir) << " to " << doorB2.tile->getIDStr() << " " << doorB2.tile->getListLinks(doorB2.dir) << ".\n";
+		std::cerr << "Linking " << doorA1.tile->listLinks(doorA1.dir) << " to " << doorB2.tile->listLinks(doorB2.dir) << ".\n";
 		doorA1.tile->link(doorB2.tile, doorA1.dir, doorB2.dir);
 		
-		std::cerr << "Linking " << doorA2.tile->getIDStr() << " " << doorA2.tile->getListLinks(doorA2.dir) << " to " << doorB1.tile->getIDStr() << " " << doorB1.tile->getListLinks(doorB1.dir) << ".\n";
+		std::cerr << "Linking " << doorA2.tile->listLinks(doorA2.dir) << " to " << doorB1.tile->listLinks(doorB1.dir) << ".\n";
 		doorA2.tile->link(doorB1.tile, doorA2.dir, doorB1.dir);
 		
 		Tile* hall1{ tiles.emplace_back(new Tile()) };
-		std::cerr << "Inserting from " << doorA1.tile->getIDStr() << " (" << doorA1.tile->getListLinks(doorA1.dir) << ") in " << (int)doorA1.dir << ".\n";
+		std::cerr << "Inserting from " << " (" << doorA1.tile->listLinks(doorA1.dir) << ") in " << (int)doorA1.dir << ".\n";
 		doorA1.tile->insert(hall1, doorA1.dir);
-		std::cerr << "Inserted " << hall1->getIDStr() << " " << hall1->getListLinks() << ".\n";
+		std::cerr << "Inserted " << hall1->getIDStr() << " " << hall1->listLinks() << ".\n";
 		
 		Tile* hall2{ tiles.emplace_back(new Tile()) };
-		std::cerr << "Inserting from " << doorA2.tile->getIDStr() << " (" << doorA2.tile->getListLinks(doorA1.dir) << ") in " << (int)doorA2.dir << ".\n";
+		std::cerr << "Inserting from " << " (" << doorA2.tile->listLinks(doorA1.dir) << ") in " << (int)doorA2.dir << ".\n";
 		doorA2.tile->insert(hall2, doorA2.dir);
-		std::cerr << "Inserted " << hall2->getIDStr() << " " << hall2->getListLinks() << ".\n";
+		std::cerr << "Inserted " << hall2->listLinks() << ".\n";
 		
 		//A statue of a person, let's say.
 		//room[2][3]->glyph = "@";
@@ -680,15 +680,26 @@ public:
 		//Inner-most brackets: Tile direction left in.
 		//Up one level: Rotatinoal delta calculation.
 		//Rest of formula: Add rotational delta to current rotation.
+		std::cerr << "Moved from " << loc->listLinks()
+			<< " facing " << (int)rot
+			<< " in " << direction 
+			<< ", over " << (int)link->dir()
+			<< ".\n";
+		
+		
 		rot = (rot + (
 			Tile::oppositeEdge[link->dir()] - (direction + rot)
 		) + 4) % 4;
 		loc = link->tile();
+		
+		std::cerr << "Arrived on " << loc->listLinks()
+			<< " facing " << (int)rot
+			<< ".\n";
 	}
 	
 	void move(int direction) {
 		moveCamera(direction);
-		std::cout << seq::clear;
+		//std::cout << seq::clear;
 		render(std::cout);
 	}
 };
