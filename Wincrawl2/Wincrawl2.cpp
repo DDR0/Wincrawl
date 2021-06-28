@@ -653,7 +653,7 @@ public:
 	}
 	
 	void moveCamera(int direction) {
-		auto link {loc->getNextTile(direction + rot) };
+		auto link {loc->getNextTile((direction + rot + 4) % 4) };
 		if (!link->tile()) return;
 
 		//To get the new view rotation, consider the following example
