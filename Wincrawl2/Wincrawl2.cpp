@@ -272,33 +272,41 @@ public:
 		this->links[indexOut].set(other, indexIn);
 	}
 
-	void insert(Tile* other, int8_t indexOut, int8_t indexIn = -1) {
+	void insert(Tile* middle, int8_t indexOut, int8_t indexIn = -1) {
 		//Put a tile between two connected tiles. (Neither of the tiles otherwise move.)
 
 		if (indexIn == -1) {
 			indexIn = oppositeEdge[indexOut];
 		}
 
-		assert(other);
+		assert(middle);
 		assert(indexOut != indexIn); //Indices in are for the internal tile, since we know the outter tile indices this time.
 		assert(indexOut >= 0 && indexOut < 6); //Direction index out of this tile must be specified.
 		assert(indexIn >= 0 && indexIn < 6);
 		assert(this->links[indexOut].tile()); //Don't allow resetting tile links here? Use insert for that. (Prevent one-way links. Jumps in perspective are not desired, you can always go back.)
-		assert(!other->links[indexIn].tile());
-		assert(!other->links[oppositeEdge[indexIn]].tile());
+		assert(!middle->links[indexIn].tile());
+		assert(!middle->links[oppositeEdge[indexIn]].tile());
 
 		Tile* source{ this };
 		Link& outbound{ source->links[indexOut] };
 		Tile* dest{ source->links[indexOut].tile() };
 		Link& inbound{ dest->links[outbound.dir()] };
+		
+		// Before Insert:         After Insert:
+		//┌─────┐       ┌─────┐   ┌─────┐       ┌─────┐       ┌─────┐   
+		//│  1  │ 2 → 1 │  2  │   │  1  │ 2 → 0 │  1  │ 2 → 1 │  2  │   
+		//│0   2│ ────→ │1   3│   │0   2│ ────→ │0   2│ ────→ │1   3│    
+		//│  3  │       │  0  │   │  3  │       │  3  │       │  0  │   
+		//└─────┘       └─────┘   └─────┘       └─────┘       └─────┘   
+		// tile1         tile2     tile1         tile2         tile2    
 
 		//Copy links to inserted tile's links.
-		other->links[indexOut].set(outbound);
-		other->links[indexIn].set(inbound);
+		middle->links[indexIn].set(outbound);
+		middle->links[indexOut].set(inbound);
 
 		//Update source and dest tile's links.
-		outbound.set(other, outbound.dir());
-		inbound.set(other, inbound.dir());
+		outbound.set(middle, outbound.dir());
+		inbound.set(middle, inbound.dir());
 	}
 
 	Link* getNextTile(int comingFrom, int pointingIn) {
@@ -401,7 +409,7 @@ class Plane {
 			std::cout << "Tile " << c.tile->getIDStr() << ": " << c.tile->listLinks(c.dir) << "\n";
 		}
 		
-		return Room{room[roomX/2][roomY/2], connections};
+		return Room{ room[roomX/2][roomY/2], connections };
 	}
 	
 
@@ -409,6 +417,7 @@ public:
 	Plane(uint16_t numRooms)
 		: id(TotalPlanesCreated++)
 	{
+		tiles.reserve(512);
 		rooms.emplace_back(genSquareRoom(10, 5, true, false, Color{217, 62, 60}));
 		rooms.emplace_back(genSquareRoom(10, 5, false, false, Color{146, 62, 60}));
 		
@@ -564,8 +573,8 @@ public:
 
 		grid.reserve(width);
 		for (int x = 0; x < viewSize[0]; x++) {
-			grid.emplace_back();
-			grid[x].assign(height, nullptr);
+			grid.emplace_back()
+				.assign(height, nullptr);
 		}
 
 		tempAvatar.roomId = 0;
@@ -778,7 +787,7 @@ void runMainLoop(View& view, Triggers& triggers) {
 				(chr_ >> 8 * (codepoints - 1)) & 0xFF;
 			
 			//Better output, just shows characters entered so far.
-			std::cout << "\r> ";
+			std::cout << "        \r> "; //maxInputBufferLength spaces
 			for (int i=0; inputBuffer[i]; i++) {
 				if (inputBuffer[i] < ' ') { //print symbol for control character so we can see it
 					std::string symbol{ "␀" };
@@ -796,6 +805,7 @@ void runMainLoop(View& view, Triggers& triggers) {
 				inputBuffered = 0;
 				for (int i = 0; i < maxInputBufferLength; i++)
 					inputBuffer[i] = 0;
+				std::cout << "\r>         \r> "; //maxInputBufferLength spaces, clear any buffer there and reset cursor to where it should be.
 			}
 
 
