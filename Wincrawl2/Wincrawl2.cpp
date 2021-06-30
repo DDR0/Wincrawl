@@ -305,8 +305,8 @@ public:
 		middle->links[indexOut].set(inbound);
 
 		//Update source and dest tile's links.
-		outbound.set(middle, outbound.dir());
-		inbound.set(middle, inbound.dir());
+		outbound.set(middle, inbound.dir());
+		inbound.set(middle, outbound.dir());
 	}
 
 	Link* getNextTile(int comingFrom, int pointingIn) {
