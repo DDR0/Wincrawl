@@ -1,4 +1,5 @@
-﻿#include <array>
+﻿#include <algorithm>
+#include <array>
 #include <atomic>
 #include <cassert>
 #include <chrono>
@@ -39,6 +40,13 @@ struct seq {
 	inline static const char* reset { "[0m" };
 	inline static const char* bold  { "[1m" };
 };
+
+//Darn it, C++. Remove element from vector.
+//https://stackoverflow.com/questions/3385229/c-erase-vector-element-by-value-rather-than-by-position
+template<typename T>
+void filterOut(std::vector<T> vec, T elem) {
+	vec.erase(std::remove(vec.begin(), vec.end(), elem), vec.end());
+}
 
 class Color {
 	//Encapsulate https://www.hsluv.org/ in a convenient wrapper.
@@ -110,6 +118,14 @@ public:
 		return *this;
 	}
 
+	Color& operator=(uint32_t rgb) {
+		assert(rgb <= 0xffffff);
+		channels[0] = static_cast<uint8_t>(rgb>>16);
+		channels[1] = static_cast<uint8_t>(rgb>>8&0xFF);
+		channels[2] = static_cast<uint8_t>(rgb&0xFF);
+		return *this;
+	}
+
 	uint8_t operator[](size_t i) {
 		assert(i < 3);
 		return channels[i];
@@ -147,6 +163,15 @@ public:
 			+ std::to_string(this->channels[1]) + ";"
 			+ std::to_string(this->channels[2]) + "m";
 	}
+};
+
+
+class Entity {
+public:
+	const char* glyph{ "￼" };
+	Color fgColor{ 0xFF0000 };
+	uint8_t type { 0 };
+	uint8_t zorder { 0 };
 };
 
 
@@ -193,6 +218,8 @@ public:
 	bool isOpaque{ false };
 	Color bgColor{ 0, 0, 0 };
 	Color fgColor{ 0, 0, 100 };
+	std::vector<Entity*> occupants {};
+	
 
 	Tile() : id(TotalTilesCreated++) {}
 	
@@ -291,14 +318,6 @@ public:
 		Link& outbound{ source->links[indexOut] };
 		Tile* dest{ source->links[indexOut].tile() };
 		Link& inbound{ dest->links[outbound.dir()] };
-		
-		// Before Insert:         After Insert:
-		//┌─────┐       ┌─────┐   ┌─────┐       ┌─────┐       ┌─────┐   
-		//│  1  │ 2 → 1 │  2  │   │  1  │ 2 → 0 │  1  │ 2 → 1 │  2  │   
-		//│0   2│ ────→ │1   3│   │0   2│ ────→ │0   2│ ────→ │1   3│    
-		//│  3  │       │  0  │   │  3  │       │  3  │       │  0  │   
-		//└─────┘       └─────┘   └─────┘       └─────┘       └─────┘   
-		// tile1         tile2     tile1         tile2         tile2    
 
 		//Copy links to inserted tile's links.
 		middle->links[indexIn].set(outbound);
@@ -350,6 +369,7 @@ class Plane {
 	const uint_fast16_t id{ 0 };
 
 	std::vector<Tile*> tiles; //List of all tiles we created.
+	std::vector<Entity*> entities; //List of all entities we created.
 	
 	struct RoomConnection {
 		Tile* tile;
@@ -442,15 +462,15 @@ public:
 		doorA2.tile->insert(hall2, doorA2.dir);
 		std::cerr << "Inserted " << hall2->listLinks() << ".\n";
 		
-		//A statue of a person, let's say.
-		//room[2][3]->glyph = "@";
-		//room[2][3]->isOpaque = true;
+		Entity* avatar{ entities.emplace_back(new Entity()) };
+		avatar->glyph = "@";
+		avatar->fgColor = 0xDDA24E;
+		rooms.at(0).seed->occupants.push_back(avatar);
 	}
-
+	
 	~Plane() {
-		for (auto tile : tiles) {
-			delete tile;
-		}
+		for (auto tile : tiles) { delete tile; }
+		for (auto entity : entities) { delete entity; }
 	}
 
 	friend auto operator<<(std::ostream& os, Plane const& plane) -> std::ostream& {
@@ -590,9 +610,6 @@ public:
 
 		int viewloc[2] = { viewSize[0] / 2, viewSize[1] / 2 };
 
-		//Tile* tilemap[viewSize[0]][viewSize[1]] = {};
-
-		//target << reinterpret_cast<const char*>(loc->glyph) << "\n";
 		std::cout << "starting\n";
 
 		//First, all our tiles are hidden.
@@ -612,16 +629,28 @@ public:
 				this->raytrace(rayWalker, viewloc[0], viewloc[1], x, y);
 			}
 		}
-		//this->raytrace(rayWalker, viewloc[0], viewloc[1], viewSize[0]-1, 0);
-		grid[viewloc[0]][viewloc[1]] = &tempAvatar;
+		
+		//We don't ever trace the center tile, just those around it.
+		grid[viewloc[0]][viewloc[1]] = loc;
 
 		for (int y = 0; y < viewSize[1]; y++) {
 			for (int x = 0; x < viewSize[0]; x++) {
+				//Print entity on tile.
+				for (auto entity : grid[x][y]->occupants) {
+					target
+						<< entity->fgColor.fg() << grid[x][y]->bgColor.bg()
+						<< reinterpret_cast<const char*>(entity->glyph)
+						<< seq::reset;
+					goto nextTile;
+				}
+				
+				//If no entities, print tile itself.
 				target
 					<< grid[x][y]->fgColor.fg() << grid[x][y]->bgColor.bg()
 					<< reinterpret_cast<const char*>(grid[x][y]->glyph)
 					<< seq::reset;
-				//target << grid[x][y]->getIDStr();
+				
+				nextTile: continue;
 			}
 			target << "\n";
 		}
@@ -689,21 +718,27 @@ public:
 		//Inner-most brackets: Tile direction left in.
 		//Up one level: Rotatinoal delta calculation.
 		//Rest of formula: Add rotational delta to current rotation.
-		std::cerr << "Moved from " << loc->listLinks()
-			<< " facing " << (int)rot
-			<< " in " << direction 
-			<< ", over " << (int)link->dir()
-			<< ".\n";
 		
+		//std::cerr << "Moved from " << loc->listLinks()
+		//	<< " facing " << (int)rot
+		//	<< " in " << direction 
+		//	<< ", over " << (int)link->dir()
+		//	<< ".\n";
+		
+		//Hack: Drag the first entity found on a tile to the tile we're moving to. This should be our player.
+		Entity* player { loc->occupants.back() };
+		loc->occupants.pop_back();
 		
 		rot = (rot + (
 			Tile::oppositeEdge[link->dir()] - (direction + rot)
 		) + 4) % 4;
 		loc = link->tile();
 		
-		std::cerr << "Arrived on " << loc->listLinks()
-			<< " facing " << (int)rot
-			<< ".\n";
+		loc->occupants.push_back(player);
+		
+		//std::cerr << "Arrived on " << loc->listLinks()
+		//	<< " facing " << (int)rot
+		//	<< ".\n";
 	}
 	
 	void move(int direction) {
@@ -847,7 +882,7 @@ int main() {
 
 	cout << "Done!\n";
 
-	View view{ 20, 20, plane0.getStartingTile() };
+	View view{ 23, 23, plane0.getStartingTile() };
 	view.render(cout);
 	
 	
