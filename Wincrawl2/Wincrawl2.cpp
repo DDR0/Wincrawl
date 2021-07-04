@@ -195,6 +195,11 @@ public:
 		this->tile_ = link.tile();
 		this->dir_ = link.dir();
 	}
+	
+	//todo: test this
+	explicit operator bool () const {
+		return this->tile_ != nullptr;
+	}
 };
 
 
@@ -299,33 +304,31 @@ public:
 		this->links[indexOut].set(other, indexIn);
 	}
 
-	void insert(Tile* middle, int8_t indexOut, int8_t indexIn = -1) {
+	void insert(Tile* newTile, int8_t indexOut, int8_t indexIn = -1) {
 		//Put a tile between two connected tiles. (Neither of the tiles otherwise move.)
 
 		if (indexIn == -1) {
 			indexIn = oppositeEdge[indexOut];
 		}
 
-		assert(middle);
+		assert(newTile);
 		assert(indexOut != indexIn); //Indices in are for the internal tile, since we know the outter tile indices this time.
 		assert(indexOut >= 0 && indexOut < 6); //Direction index out of this tile must be specified.
 		assert(indexIn >= 0 && indexIn < 6);
 		assert(this->links[indexOut].tile()); //Don't allow resetting tile links here? Use insert for that. (Prevent one-way links. Jumps in perspective are not desired, you can always go back.)
-		assert(!middle->links[indexIn].tile());
-		assert(!middle->links[oppositeEdge[indexIn]].tile());
+		assert(!newTile->links[indexIn].tile());
+		assert(!newTile->links[oppositeEdge[indexIn]].tile());
 
-		Tile* source{ this };
-		Link& outbound{ source->links[indexOut] };
-		Tile* dest{ source->links[indexOut].tile() };
-		Link& inbound{ dest->links[outbound.dir()] };
+		Link& outbound{ this->links[indexOut] };
+		Link& inbound{ outbound.tile()->links[outbound.dir()] };
 
 		//Copy links to inserted tile's links.
-		middle->links[indexIn].set(outbound);
-		middle->links[indexOut].set(inbound);
+		newTile->links[indexOut].set(outbound);
+		newTile->links[indexIn].set(inbound);
 
-		//Update source and dest tile's links.
-		outbound.set(middle, inbound.dir());
-		inbound.set(middle, outbound.dir());
+		//Update source and destTile tile's links.
+		outbound.set(newTile, indexIn);
+		inbound.set(newTile, indexOut);
 	}
 
 	Link* getNextTile(int comingFrom, int pointingIn) {
@@ -453,12 +456,12 @@ public:
 		doorA2.tile->link(doorB1.tile, doorA2.dir, doorB1.dir);
 		
 		Tile* hall1{ tiles.emplace_back(new Tile()) };
-		std::cerr << "Inserting from " << " (" << doorA1.tile->listLinks(doorA1.dir) << ") in " << (int)doorA1.dir << ".\n";
+		std::cerr << "Inserting from " << doorA1.tile->listLinks(doorA1.dir) << " in " << (int)doorA1.dir << ".\n";
 		doorA1.tile->insert(hall1, doorA1.dir);
 		std::cerr << "Inserted " << hall1->getIDStr() << " " << hall1->listLinks() << ".\n";
 		
 		Tile* hall2{ tiles.emplace_back(new Tile()) };
-		std::cerr << "Inserting from " << " (" << doorA2.tile->listLinks(doorA1.dir) << ") in " << (int)doorA2.dir << ".\n";
+		std::cerr << "Inserting from " << doorA2.tile->listLinks(doorA1.dir) << " in " << (int)doorA2.dir << ".\n";
 		doorA2.tile->insert(hall2, doorA2.dir);
 		std::cerr << "Inserted " << hall2->listLinks() << ".\n";
 		
