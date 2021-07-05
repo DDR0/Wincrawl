@@ -30,7 +30,7 @@ std::string Tile::listLinks(int8_t hightlightIndex) {
 	return out.str();
 }
 
-auto operator<<(std::ostream& os, Tile const& tile) -> std::ostream& {
+std::ostream& operator<<(std::ostream& os, Tile const& tile) {
 	os << "Tile " << tile.id << " (";
 
 	bool hasNeighbours = false;
@@ -242,7 +242,7 @@ Plane::~Plane() {
 	for (auto entity : entities) { delete entity; }
 }
 
-auto operator<<(std::ostream& os, Plane const& plane) -> std::ostream& {
+std::ostream& operator<<(std::ostream& os, Plane const& plane) {
 	os << "Plane " << plane.id << ":\n\t";
 
 	size_t tcount{};

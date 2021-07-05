@@ -63,7 +63,7 @@ public:
 	//Debugging functions.
 	std::string getIDStr();
 	std::string listLinks(int8_t hightlightIndex = -1);
-	friend auto operator<<(std::ostream& os, Tile const& tile) -> std::ostream&;
+	friend std::ostream& operator<<(std::ostream& os, Tile const& tile);
 
 	void link(Tile* other, int8_t indexOut, int8_t indexIn = -1);
 	void insert(Tile* newTile, int8_t indexOut, int8_t indexIn = -1);
@@ -106,7 +106,7 @@ public:
 	Plane(uint16_t numRooms);
 	~Plane();
 
-	friend auto operator<<(std::ostream& os, Plane const& plane) -> std::ostream&;
+	friend std::ostream& operator<<(std::ostream& os, Plane const& plane);
 
 	Tile* getStartingTile();
 };
