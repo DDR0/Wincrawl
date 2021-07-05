@@ -1,6 +1,8 @@
 //Classes related to places, the tiles of the map itself.
 #pragma once
 
+#include <vector>
+
 #include "color.hpp"
 #include "things.hpp"
 

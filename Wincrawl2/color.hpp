@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include <cstdint>
+#include <cassert>
 #include <cmath>
+#include <cstdint>
 
 #include "hsluv.h"
 

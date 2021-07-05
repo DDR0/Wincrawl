@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 int getInputChar(void);
 
 enum getInputCharAsync { next = -1, stop = -2 };

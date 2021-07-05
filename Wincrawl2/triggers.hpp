@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <cstring>
+#include <vector>
 
 class Triggers {
 	typedef bool isPartialCommand;

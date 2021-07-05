@@ -1,25 +1,6 @@
-﻿#include <algorithm>
-#include <array>
-#include <atomic>
-#include <cassert>
-#include <chrono>
-#include <cmath>
-#include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <span>
-#include <sstream>
-#include <string>
-#include <thread>
-#include <vector>
+﻿#define dbg std::raise(SIGINT)
 
-#ifdef _MSC_VER
-#include <windows.h>
-#endif
+#include <iostream>
 
 #include "seq.hpp"
 #include "color.hpp"
@@ -29,14 +10,11 @@
 #include "triggers.hpp"
 #include "main_loop.hpp"
 
-#define dbg std::raise(SIGINT)
-
-
-
 int main() {
 	using namespace std;
 
 #ifdef _MSC_VER
+	#include <windows.h>
 	SetConsoleOutputCP(CP_UTF8);
 #endif
 
@@ -94,7 +72,7 @@ int main() {
 	
 	
 	cout << "Arrow keys to move, alt left/right to turn, q to quit.\n";
-	runMainLoop(view, triggers);
+	runMainLoop(triggers);
 	
 	
 	cout << "Good-bye.\n";

@@ -5,7 +5,6 @@
 #include <memory>
 #include <sstream>
 #include <stdio.h>
-#include <vector>
 
 #include "places.hpp"
 #include "seq.hpp"
