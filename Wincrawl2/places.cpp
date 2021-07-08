@@ -5,6 +5,8 @@
 #include <memory>
 #include <sstream>
 #include <stdio.h>
+#include <functional>
+#include <ranges>
 
 #include "places.hpp"
 #include "seq.hpp"
@@ -157,7 +159,8 @@ std::string Tile::getIDStr() {
 Plane::Room Plane::genSquareRoom(
 	const uint8_t roomX, const uint8_t roomY, 
 	const bool wrapX, const bool wrapY,
-	const Color fg, const Color bg
+	const Color fg, const Color bg,
+	const uint8_t possibleDoors
 ) {
 	Tile* room[roomX][roomY] = {};
 
@@ -185,14 +188,15 @@ Plane::Room Plane::genSquareRoom(
 		}
 	}
 	
-	std::vector<RoomConnection> connections {};
+	auto doors = possibleDoors;
+	std::vector<RoomConnectionTile> connections {};
 	if (!wrapX) {
-		connections.emplace_back(room[roomX-1][roomY/2], 1);
-		connections.emplace_back(room[      0][roomY/2], 3);
+		if (doors & 0b0100) connections.emplace_back(room[roomX-1][roomY/2], 1);
+		if (doors & 0b0001) connections.emplace_back(room[      0][roomY/2], 3);
 	}
 	if (!wrapY) {
-		connections.emplace_back(room[roomX/2][      0], 0);
-		connections.emplace_back(room[roomX/2][roomY-1], 2);
+		if (doors & 0b1000) connections.emplace_back(room[roomX/2][      0], 0);
+		if (doors & 0b0010) connections.emplace_back(room[roomX/2][roomY-1], 2);
 	}
 	
 	std::cout << "Genned room.\n";
@@ -203,17 +207,31 @@ Plane::Room Plane::genSquareRoom(
 	return Room{ room[roomX/2][roomY/2], connections };
 }
 
-Plane::Plane(uint16_t numRooms)
-	: id(TotalPlanesCreated++)
+Plane::Plane(std::minstd_rand rng_, int numRooms)
+	: id(TotalPlanesCreated++), rng(rng_)
 {
-	tiles.reserve(512);
-	rooms.emplace_back(genSquareRoom(10, 5, true, false, Color{217, 62, 60}));
-	rooms.emplace_back(genSquareRoom(10, 5, false, false, Color{146, 62, 60}));
 	
-	RoomConnection doorA1{ rooms.front().connections.front() };
-	RoomConnection doorA2{ rooms.front().connections.back() };
-	RoomConnection doorB1{ rooms.back().connections.front() };
-	RoomConnection doorB2{ rooms.back().connections.back() };
+	//auto choose10 { std::bind(std::uniform_int_distribution<int>{ 0, 10 }, rng) };
+	std::cout << "rng says " << d(20) << "\n";
+	std::cout << "rng says " << d(20) << "\n";
+	std::cout << "rng says " << d(20) << "\n";
+	std::cout << "rng says " << d(20) << "\n";
+	
+	tiles.reserve(512);
+	rooms.reserve(numRooms);
+	for ([[maybe_unused]] auto _ : std::views::iota(0, 10)) {
+		rooms.emplace_back(genSquareRoom(
+			d(2,5) + d(2,5), d(2,5) + d(2,5), 
+			!d(4), false, 
+			Color{d(30.,115.), d(58.,  70.), d(35., 50.)},
+			Color{d(30.,115.), d(70., 100.), d( 0.,  6.)}
+		));
+	}
+	
+	RoomConnectionTile doorA1{ rooms.front().connections.front() };
+	RoomConnectionTile doorA2{ rooms.front().connections.back() };
+	RoomConnectionTile doorB1{ rooms.back().connections.front() };
+	RoomConnectionTile doorB2{ rooms.back().connections.back() };
 	
 	std::cerr << "Linking " << doorA1.tile->listLinks(doorA1.dir) << " to " << doorB2.tile->listLinks(doorB2.dir) << ".\n";
 	doorA1.tile->link(doorB2.tile, doorA1.dir, doorB2.dir);

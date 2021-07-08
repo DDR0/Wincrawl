@@ -1,6 +1,7 @@
 ﻿#define dbg std::raise(SIGINT)
 
 #include <iostream>
+#include <random>
 
 #include "seq.hpp"
 #include "color.hpp"
@@ -30,8 +31,10 @@ int main() {
 	Tile tile2{};
 	tile0.insert(&tile2, 1, 2);
 	cout << "tiles: " << tile0 << " " << tile1 << " " << tile2 << "\n";
-
-	Plane plane0{ 4 };
+	
+	std::minstd_rand rng { 5 }; //Note: Can call .seed(x) if needed.
+	rng(); //Advance one step, initial value seems to be the seed otherwise.
+	Plane plane0{ rng, 4 };
 
 	cout << "Done!\n";
 	

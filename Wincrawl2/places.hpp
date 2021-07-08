@@ -2,6 +2,7 @@
 #pragma once
 
 #include <vector>
+#include <random>
 
 #include "color.hpp"
 #include "things.hpp"
@@ -79,18 +80,31 @@ class Plane {
 	
 	inline static uint_fast16_t TotalPlanesCreated{ 0 };
 	const uint_fast16_t id{ 0 };
+	std::minstd_rand rng;
+	int d(int max) {
+		//Returns a number, 𝑛, such that 0 ≤ 𝑛 < max.
+		return d(0, max);
+	};
+	int d(int min, int max) {
+		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
+		return std::uniform_int_distribution<int>{ min, max }(rng);
+	};
+	double d(double min, double max) {
+		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
+		return std::uniform_real_distribution{ min, max }(rng);
+	};
 
 	std::vector<Tile*> tiles; //List of all tiles we created.
-	std::vector<Entity*> entities; //List of all entities we created.
+	std::vector<Entity*> entities; //List of all entities we created. TODO: Track these as smart pointers, since we'll have many owners of indefinite lifetimes?
 	
-	struct RoomConnection {
+	struct RoomConnectionTile {
 		Tile* tile;
 		int8_t dir;
 	};
 	
 	struct Room {
 		Tile* seed;
-		std::vector<RoomConnection> connections;
+		std::vector<RoomConnectionTile> connections; //TODO: Make this a vector of vectors, so we can have multi-tile wide connections.
 	};
 	std::vector<Room> rooms {};
 	
@@ -98,12 +112,13 @@ class Plane {
 		const uint8_t roomX, const uint8_t roomY, 
 		const bool wrapX = false, const bool wrapY = false,
 		const Color fg = Color{0,0,100},
-		const Color bg = Color{0,0,0}
+		const Color bg = Color{0,0,0},
+		const uint8_t possibleDoors = 0b1111 //Bitfield, up/right/bottom/left like in CSS.
 	);
 	
 
 public:
-	Plane(uint16_t numRooms);
+	Plane(std::minstd_rand rng, int numRooms);
 	~Plane();
 
 	friend std::ostream& operator<<(std::ostream& os, Plane const& plane);
