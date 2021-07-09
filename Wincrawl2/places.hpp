@@ -89,6 +89,10 @@ class Plane {
 		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
 		return std::uniform_int_distribution<int>{ min, max }(rng);
 	};
+	double d(double max) {
+		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
+		return d(0., max);
+	};
 	double d(double min, double max) {
 		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
 		return std::uniform_real_distribution{ min, max }(rng);
