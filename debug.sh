@@ -1,0 +1,1 @@
+make && gdb -ex run -tui wincrawl

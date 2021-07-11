@@ -26,7 +26,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "hsluv.h"
+#include "hsluv.hpp"
 
 #include <float.h>
 #include <math.h>

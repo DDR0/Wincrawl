@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdint>
 
-#include "hsluv.h"
+#include "hsluv.hpp"
 
 class Color {
 	uint8_t channels[3]{};

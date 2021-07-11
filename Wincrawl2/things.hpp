@@ -4,7 +4,7 @@
 #include "color.hpp"
 #include "places.hpp"
 
-class Tile; //Not defined by places.hpp here for some reason.
+class Tile; //Not defined by places.hpp, as places.hpp requires this first.
 
 class Entity {
 public:
