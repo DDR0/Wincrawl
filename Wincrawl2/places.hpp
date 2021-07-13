@@ -115,7 +115,7 @@ class Plane {
 	Room genSquareRoom(
 		const uint8_t roomX, const uint8_t roomY, 
 		const bool wrapX = false, const bool wrapY = false,
-		const Color fg = Color{0,0,100},
+		const Color fg = Color{0,0,100}, //These can't be const, VS says no.
 		const Color bg = Color{0,0,0},
 		const uint8_t possibleDoors = 0b1111 //Bitfield, up/right/bottom/left like in CSS.
 	);

@@ -162,7 +162,9 @@ Plane::Room Plane::genSquareRoom(
 	const Color fg, const Color bg,
 	const uint8_t possibleDoors
 ) {
-	Tile* room[roomX][roomY] = {};
+	std::vector<std::vector<Tile*>> room {};
+	room.resize(roomX);
+	for (auto ys : room) ys.resize(roomY);
 
 	for (uint8_t x = 0; x < roomX; x++) {
 		for (uint8_t y = 0; y < roomY; y++) {

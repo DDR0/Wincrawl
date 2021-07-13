@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <string>
 #include <cstdint>
 
 #include "hsluv.hpp"
@@ -42,7 +43,7 @@ public:
 		for (int i = 0; i < 3; ++i)
 			channels[i] = int(std::round(channelsIn[i]*255));
 	}
-	Color(Color& other) : channels{ other[0], other[1], other[2] } {}
+	Color(const Color& other) : channels{ other[0], other[1], other[2] } {}
 
 	void rgb(uint8_t r, uint8_t g, uint8_t b) {
 		channels[0] = r;
