@@ -14,11 +14,6 @@
 int main() {
 	using namespace std;
 
-#ifdef _MSC_VER
-	#include <windows.h>
-	SetConsoleOutputCP(CP_UTF8);
-#endif
-
 	cout << "⌛ Generating...\n";
 
 	Tile tile0{};

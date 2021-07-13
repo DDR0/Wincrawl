@@ -8,8 +8,8 @@
 #include "io.hpp"
 
 #ifdef _MSC_VER
+#include <immintrin.h>
 //unsigned int _lzcnt_u32 (unsigned int a)
-#include "immintrin.h"
 #define COUNT_LEADING_ZEROS _lzcnt_u32
 #else
 //int __builtin_clz (unsigned int x)

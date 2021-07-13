@@ -8,6 +8,7 @@
 #include <conio.h>
 
 int getInputChar() {
+	if (!SetConsoleOutputCP(CP_UTF8)) return 0;
 	return _getch();
 };
 
