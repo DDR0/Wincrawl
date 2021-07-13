@@ -44,7 +44,7 @@ int getInputChar(void) {
 
 
 //Wrap above in a little read loop, to be called as a thread.
-void getInputCharAsync(std::atomic<int>& value) {
+void getInputCharAsync(std::atomic<int>& value) { //TODO: Use std::stop_token here?
 	using namespace std::chrono_literals;
 
 	while (true) { //-2 is "exit", -1 is "ready for next char".
