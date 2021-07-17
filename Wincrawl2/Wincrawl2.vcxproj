@@ -152,6 +152,8 @@
     <ClCompile Include="main_loop.cpp" />
     <ClCompile Include="places.cpp" />
     <ClCompile Include="things.cpp" />
+    <ClCompile Include="triggers.cpp" />
+    <ClCompile Include="view.cpp" />
     <ClCompile Include="Wincrawl2.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
