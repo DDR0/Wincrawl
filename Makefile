@@ -81,7 +81,7 @@ endef
 
 .PHONY: all checkdirs clean
 
-all: wincrawl
+all: checkdirs wincrawl
 
 wincrawl: $(OBJ)
 	@echo "Linking : wincrawl"

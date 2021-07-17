@@ -1,6 +1,7 @@
 #include <cstring>
 #include <iostream>
 
+
 #include "triggers.hpp"
 
 const bool Triggers::run(const char* cmd) {
