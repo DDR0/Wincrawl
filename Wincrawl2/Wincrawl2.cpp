@@ -27,7 +27,7 @@ int main() {
 	tile0.insert(&tile2, 1, 2);
 	cout << "tiles: " << tile0 << " " << tile1 << " " << tile2 << "\n";
 	
-	std::minstd_rand rng { 5 }; //Note: Can call .seed(x) if needed.
+	std::minstd_rand rng { 5 }; //Note: Can call .seed(x) if needed. Does not return same on all platforms.
 	rng(); //Advance one step, initial value seems to be the seed otherwise.
 	Plane plane0{ rng, 4 };
 
