@@ -56,7 +56,7 @@ public:
 	bool isOpaque{ false };
 	Color bgColor{ 0, 0, 0 };
 	Color fgColor{ 0, 0, 100 };
-	std::vector<Entity<>*> occupants {};
+	std::vector<Entity<IsVisible>*> occupants {};
 	
 	Tile() : id(TotalTilesCreated++) {}
 	
@@ -98,7 +98,7 @@ class Plane {
 	};
 
 	std::vector<Tile*> tiles; //List of all tiles we created.
-	std::vector<Entity<>*> entities; //List of all entities we created. TODO: Track these as smart pointers, since we'll have many owners of indefinite lifetimes?
+	std::vector<Entity<IsVisible>*> entities; //List of all entities we created. TODO: Track these as smart pointers, since we'll have many owners of indefinite lifetimes?
 	
 	struct RoomConnectionTile {
 		Tile* tile;

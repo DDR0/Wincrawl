@@ -248,7 +248,7 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	doorA2.tile->insert(hall2, doorA2.dir);
 	std::cerr << "Inserted " << hall2->listLinks() << ".\n";
 	
-	Entity<>* avatar{ entities.emplace_back(new Entity<>()) };
+	Avatar* avatar{ static_cast<Avatar*>(entities.emplace_back(new Avatar())) };
 	avatar->glyph = "@";
 	avatar->fgColor = 0xDDA24E;
 	rooms.at(0).seed->occupants.push_back(avatar);
