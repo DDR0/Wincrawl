@@ -7,14 +7,21 @@
 #include <windows.h>
 #include <conio.h>
 
+bool setUpConsole() {
+	return SetConsoleOutputCP(CP_UTF8);
+}
+
 int getInputChar() {
-	if (!SetConsoleOutputCP(CP_UTF8)) return 0;
 	return _getch();
 };
 
 #else
 #include <unistd.h>
 #include <termios.h>
+
+bool setUpConsole() {
+	return true;
+}
 
 //From https://stackoverflow.com/a/16361724
 int getInputChar(void) {

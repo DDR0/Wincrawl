@@ -3,6 +3,7 @@
 #include <iostream>
 #include <random>
 
+#include "io.hpp"
 #include "seq.hpp"
 #include "color.hpp"
 #include "things.hpp"
@@ -13,6 +14,11 @@
 
 int main() {
 	using namespace std;
+
+	if (not setUpConsole()) {
+		cout << "Error: Could not set console to UTF8 mode.\n";
+		return 255;
+	};
 
 	cout << "⌛ Generating...\n";
 
