@@ -8,7 +8,7 @@
 #include <conio.h>
 
 bool setUpConsole() {
-	return SetConsoleOutputCP(CP_UTF8);
+	return SetConsoleCP(CP_UTF8) & SetConsoleOutputCP(CP_UTF8);
 }
 
 int getInputChar() {
