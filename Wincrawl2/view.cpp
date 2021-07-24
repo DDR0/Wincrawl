@@ -190,7 +190,7 @@ void View::moveCamera(int direction) {
 	//Rest of formula: Add rotational delta to current rotation.
 	
 	//Hack: Drag the first entity found on a tile to the tile we're moving to. This should always be our player, plus we have no other entities for now. We should just render the entity's tile.
-	Entity* player { loc->occupants.back() };
+	Entity<>* player { loc->occupants.back() };
 	loc->occupants.pop_back();
 	
 	rot = (rot + (
