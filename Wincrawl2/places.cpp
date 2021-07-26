@@ -9,13 +9,7 @@
 
 #include "places.hpp"
 #include "seq.hpp"
-
-//Darn it, C++. Remove element from vector.
-//https://stackoverflow.com/questions/3385229/c-erase-vector-element-by-value-rather-than-by-position
-template<typename T>
-void filterOut(std::vector<T> vec, T elem) {
-	vec.erase(std::remove(vec.begin(), vec.end(), elem), vec.end());
-}
+#include "vector_tools.hpp"
 
 
 std::string Tile::listLinks(int8_t hightlightIndex) {
@@ -251,6 +245,8 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	Entity* avatar{ entities.emplace_back(new Entity()) };
 	avatar->glyph = "@";
 	avatar->fgColor = 0xDDA24E;
+	avatar->addComponent<Component::Render>("@", 0xDDA24E);
+	avatar->addComponent<Component::Health>(10);
 	rooms.at(0).seed->occupants.push_back(avatar);
 }
 

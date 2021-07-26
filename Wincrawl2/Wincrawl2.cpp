@@ -12,7 +12,56 @@
 #include "triggers.hpp"
 #include "main_loop.hpp"
 
+class A {
+public:
+	int valA() { return 1; }
+	virtual int valB() { return 2; };
+};
+
+class B : public A {
+public:
+	int valA() { return 3; }
+	int valB() { return 4; }
+};
+
+class E : public A {
+public:
+	int valA() { return 5; }
+	int valB() { return 6; }
+};
+
+class C {
+public:
+	virtual int getVal(A* cont) {
+		return cont->valB();
+	}
+};
+
+class D: public C {
+public:
+	int getVal(A* cont) {
+		return cont->valB();
+	}
+	int getVal(B* cont) {
+		return cont->valA();
+	}
+};
+
+
 int main() {
+	//A* a{ new B() };
+	//B* b{ new B() };
+	//E* e{ new E() };
+	//std::cout << "Test: " << a->valA() << " " << a->valB() << "\n"; // 1 4
+	//C* c{ new C() };
+	//D* d{ new D() };
+	//B* f{ new B() };
+	//
+	//std::cout << "Test: " << c->getVal(a) << " " << d->getVal(a) << "\n"; // 4 4
+	//std::cout << "Test: " << c->getVal(b) << " " << d->getVal(b) << "\n"; // 4 3
+	//
+	//return 0;
+
 	using namespace std;
 
 	if (not setUpConsole()) {
@@ -34,7 +83,7 @@ int main() {
 	cout << "tiles: " << tile0 << " " << tile1 << " " << tile2 << "\n";
 	
 	std::minstd_rand rng { 5 }; //Note: Can call .seed(x) if needed. Does not return same on all platforms.
-	rng(); //Advance one step, initial value seems to be the seed otherwise.
+	(void) rng(); //Advance one step, initial value seems to be the seed otherwise. Cast to void to avoid VS unused value warning.
 	Plane plane0{ rng, 4 };
 
 	cout << "Done!\n";
@@ -51,7 +100,7 @@ int main() {
 	auto cColor = Color(0x6d83cf);
 	cout << cColor << "\n";
 	
-	
+
 	Triggers triggers{};
 	
 	//Linux arrow key sequences.

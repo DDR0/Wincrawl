@@ -42,6 +42,9 @@
     <ClCompile Include="view.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vector_tools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="color.hpp">
@@ -70,6 +73,9 @@
     </ClInclude>
     <ClInclude Include="view.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vector_tools.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
