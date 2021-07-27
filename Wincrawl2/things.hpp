@@ -5,7 +5,7 @@
 
 #include "color.hpp"
 #include "places.hpp"
-#include "vector_tools.hpp" //Only needed by remComponent(...).
+#include "vector_tools.hpp" //Only needed by rem(Component::Base).
 
 class Tile; //Not defined by places.hpp, as places.hpp requires this first.
 class Entity;
@@ -13,11 +13,7 @@ class Entity;
 struct Event {
 	//An event is something which happens. Eg., you stab something or get stabbed, you are drawn on screen, etc.
 
-	class Base {
-		template<typename EventType>
-		static void dispatch(Entity*, EventType*)
-			requires std::is_base_of<Event::Base, EventType>::value;
-	};
+	class Base {};
 
 	class Damage : public Event::Base {
 	public:
@@ -34,9 +30,6 @@ struct Event {
 			bool shockwave{};
 		};
 		type type{};
-		inline Damage(int amount_, bool physical = true) : amount(amount_) {
-			type.physical = physical;
-		};
 	};
 	class TakeDamage : public Event::Damage {};
 	class DoAttack : public Event::Damage {};
@@ -61,7 +54,10 @@ struct Component {
 		
 		Base(Entity*);
 
-		virtual void handleEvent(Event::Base*);
+		//TODO: Template this?
+		inline virtual void handleEvent(Event::Base*) {};
+		inline virtual void handleEvent(Event::TakeDamage*) {};
+		inline virtual void handleEvent(Event::DoAttack*) {};
 	};
 
 	class Health : public Component::Base {
@@ -102,19 +98,25 @@ public:
 
 	//TODO: Figure out how to get this into the .cpp file.
 	template<typename T, class ...Args>
-	inline void addComponent(Args... args)
+	inline void add(Args... args)
 		requires std::is_base_of<Component::Base, T>::value
 	{
 		components.push_back(new T(this, args...));
 	};
 
 	template<typename T>
-	inline void remComponent()
+	inline void rem()
 		requires std::is_base_of<Component::Base, T>::value
 	{
 		//???
 		throw "unimplimented";
 	};
+
+	template<typename EventType>
+	inline EventType* dispatch(EventType* event)
+		requires std::is_base_of<Event::Base, EventType>::value
+	{
+		for (auto c : components) c->handleEvent(event);
+		return event;
+	}
 };
-
-
