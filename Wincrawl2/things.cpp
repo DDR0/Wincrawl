@@ -1,22 +1,7 @@
-#include <cassert>
-#include <cstdint>
 #include <iostream>
-#include <memory>
-#include <sstream>
-#include <stdio.h>
-#include <vector>
 
 #include "things.hpp"
-#include "seq.hpp"
 
-
-Component::Base::Base(Entity* entityBeingEnhanced) : entity(entityBeingEnhanced) {}
-
-//void Component::Base::handleEvent(Event::Base* event) {
-//	std::cerr << "Por nada.\n";
-//}
-
-Component::Health::Health(Entity* e, int startingHP): Base(e), hp(startingHP) {}
 
 void Component::Health::handleEvent(Event::TakeDamage* evt)
 {
@@ -35,8 +20,6 @@ void Component::Health::handleEvent(Event::DoAttack* attackDamage)
 	attackDamage->type.blunt = true;
 }
 
-Component::Render::Render(Entity* e, const char* glyph_, Color color)
-	: Base(e), glyph(glyph_), fgColor(color) {}
 
 void Component::Render::handleEvent(Event::GetRendered* look)
 {

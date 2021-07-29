@@ -247,8 +247,7 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	avatar->fgColor = 0xDDA24E;
 	avatar->add<Component::Render>("@", 0xDDA24E);
 	avatar->add<Component::Health>(10);
-	Event::DoAttack attack = Event::DoAttack{};
-	avatar->dispatch(&attack);
+	auto attack = avatar->dispatch(Event::DoAttack{});
 	std::cerr << "Attack amount: " << attack.amount << "\n";
 	rooms.at(0).seed->occupants.push_back(avatar);
 }

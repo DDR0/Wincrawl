@@ -3,6 +3,8 @@
 
 #include <type_traits>
 #include <memory>
+#include <set>
+#include <vector>
 
 #include "color.hpp"
 #include "places.hpp"
@@ -11,7 +13,7 @@
 class Tile; //Not defined by places.hpp, as places.hpp requires this first.
 class Entity;
 
-struct Event {
+namespace Event {
 	//An event is something which happens. Eg., you stab something or get stabbed, you are drawn on screen, etc.
 
 	class Base {};
@@ -44,16 +46,22 @@ struct Event {
 };
 
 
-struct Component {
-	enum class priority { last, unimportant, neutral, important, veryImportant, first };
+namespace Component {
+	using namespace Component;
+	
+	enum class Priority { last, neutral, bonusModifier, baseModifier, first };
 
 	class Base {
 	public:
-		static const auto priority{ Component::priority::unimportant };
+		virtual constexpr Priority priority() const { return Priority::neutral; };
+		virtual const char* name() const { return "Base"; };
 
 		Entity* entity{ nullptr };
+		Base(Entity* e) : entity(e) {}
 		
-		Base(Entity*);
+		std::weak_ordering operator<=>(const Base& other) const {
+			return priority() <=> other.priority();
+		};
 
 		//Specializations are needed, otherwise base just gets called.
 		virtual void handleEvent(Event::TakeDamage*) {};
@@ -61,25 +69,29 @@ struct Component {
 		virtual void handleEvent(Event::GetRendered*) {};
 	};
 
-	class Health : public Component::Base {
+	class Health : public Base {
 	public:
-		static const auto priority{ Component::priority::neutral };
+		const char* name() const override { return "Health"; };
+		
 		int hp{ 10 };
 
-		Health(Entity*, int hp);
+		Health(Entity* e, int startingHP): Base(e), hp(startingHP) {}
 
 		void handleEvent(Event::TakeDamage*) override;
 		void handleEvent(Event::DoAttack*) override;
 	};
 
-	class Render : public Component::Base {
+	class Render : public Base {
 	public:
+		const char* name() const override { return "Render"; };
+		
 		const char* glyph{ "￼" };
 		Color fgColor{ 0xFF0000 };
 		uint8_t type{ 0 };
 		uint8_t zorder{ 0 };
 
-		Render(Entity*, const char* glyph_, Color color_);
+		Render(Entity* e, const char* glyph_, Color color)
+			: Base(e), glyph(glyph_), fgColor(color) {}
 
 		void handleEvent(Event::GetRendered*) override;
 	};
@@ -88,7 +100,17 @@ struct Component {
 
 class Entity {
 	//std::vector<Component::Base*> components{};
-	std::vector<std::unique_ptr<Component::Base>> components{};
+	
+	//TODO: Is this needed?
+	struct custom_compare
+	{
+		bool operator() (const auto& lhs, const auto& rhs) const
+		{
+			std::cerr << "comparison 2: " << (int)lhs->priority() << ", " << (int)rhs->priority() << "\n";
+			return lhs < rhs;
+		}
+	};
+	std::multiset<std::unique_ptr<Component::Base>, custom_compare> components{};
 
 public:
 	const char* glyph{ "￼" };
@@ -101,7 +123,7 @@ public:
 	void add(Args... args)
 		requires std::is_base_of<Component::Base, T>::value
 	{
-		components.push_back(std::make_unique<T>(this, args...));
+		components.insert(std::make_unique<T>(this, args...));
 	}
 
 	template<typename T>
@@ -113,10 +135,11 @@ public:
 	};
 
 	template<typename EventType> //This function must be templated, otherwise the virtual function doesn't get overridden by the correct function.
-	EventType* dispatch(EventType* event)
+	EventType dispatch(EventType event)
 		requires std::is_base_of<Event::Base, EventType>::value
 	{
-		for (auto& c : components) c->handleEvent(event);
+		//for (auto& c : components) std::cerr << "Component: " << c->name() << "\n";
+		for (auto& c : components) c->handleEvent(&event);
 		return event;
 	}
 };
