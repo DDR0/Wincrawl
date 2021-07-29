@@ -2,6 +2,7 @@
 #pragma once
 
 #include <type_traits>
+#include <memory>
 
 #include "color.hpp"
 #include "places.hpp"
@@ -54,10 +55,10 @@ struct Component {
 		
 		Base(Entity*);
 
-		//TODO: Template this?
-		inline virtual void handleEvent(Event::Base*) {};
-		inline virtual void handleEvent(Event::TakeDamage*) {};
-		inline virtual void handleEvent(Event::DoAttack*) {};
+		//Specializations are needed, otherwise base just gets called.
+		virtual void handleEvent(Event::TakeDamage*) {};
+		virtual void handleEvent(Event::DoAttack*) {};
+		virtual void handleEvent(Event::GetRendered*) {};
 	};
 
 	class Health : public Component::Base {
@@ -67,9 +68,8 @@ struct Component {
 
 		Health(Entity*, int hp);
 
-		inline void handleEvent(Event::Base*) {};
-		void handleEvent(Event::TakeDamage*);
-		void handleEvent(Event::DoAttack*);
+		void handleEvent(Event::TakeDamage*) override;
+		void handleEvent(Event::DoAttack*) override;
 	};
 
 	class Render : public Component::Base {
@@ -81,14 +81,14 @@ struct Component {
 
 		Render(Entity*, const char* glyph_, Color color_);
 
-		inline void handleEvent(Event::Base*) {};
-		void handleEvent(Event::GetRendered*);
+		void handleEvent(Event::GetRendered*) override;
 	};
 };
 
 
 class Entity {
-	std::vector<Component::Base*> components{};
+	//std::vector<Component::Base*> components{};
+	std::vector<std::unique_ptr<Component::Base>> components{};
 
 public:
 	const char* glyph{ "￼" };
@@ -98,25 +98,25 @@ public:
 
 	//TODO: Figure out how to get this into the .cpp file.
 	template<typename T, class ...Args>
-	inline void add(Args... args)
+	void add(Args... args)
 		requires std::is_base_of<Component::Base, T>::value
 	{
-		components.push_back(new T(this, args...));
-	};
+		components.push_back(std::make_unique<T>(this, args...));
+	}
 
 	template<typename T>
-	inline void rem()
+	void rem()
 		requires std::is_base_of<Component::Base, T>::value
 	{
 		//???
 		throw "unimplimented";
 	};
 
-	template<typename EventType>
-	inline EventType* dispatch(EventType* event)
+	template<typename EventType> //This function must be templated, otherwise the virtual function doesn't get overridden by the correct function.
+	EventType* dispatch(EventType* event)
 		requires std::is_base_of<Event::Base, EventType>::value
 	{
-		for (auto c : components) c->handleEvent(event);
+		for (auto& c : components) c->handleEvent(event);
 		return event;
 	}
 };

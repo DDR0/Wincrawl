@@ -45,13 +45,3 @@ void Component::Render::handleEvent(Event::GetRendered* look)
 	look->glyph = glyph;
 	look->fgColor = fgColor;
 }
-
-/*
-template<typename EventType>
-inline EventType* Entity::dispatch(EventType* event)
-requires std::is_base_of<Event::Base, EventType>::value
-{
-	for (auto c : components) c->handleEvent(event);
-	return event;
-}
-*/
