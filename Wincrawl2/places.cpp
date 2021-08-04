@@ -245,9 +245,12 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	Entity* avatar{ entities.emplace_back(new Entity()) };
 	avatar->glyph = "@";
 	avatar->fgColor = 0xDDA24E;
-	avatar->add<Component::Render>("@", 0xDDA24E);
-	avatar->add<Component::Health>(10);
-	auto attack = Event::TakeDamage(avatar->dispatch(Event::DealDamage{}));
+	
+	using namespace Component;
+	using namespace Event;
+	avatar->add<Render>("@", 0xDDA24E);
+	avatar->add<Health>(10);
+	auto attack = TakeDamage(avatar->dispatch(DealDamage{}));
 	std::cerr << "Attack amount: " << attack.amount << "\n";
 	rooms.at(0).seed->occupants.push_back(avatar);
 }
