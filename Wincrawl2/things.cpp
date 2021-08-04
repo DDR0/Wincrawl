@@ -10,7 +10,7 @@ void Component::Health::handleEvent(Event::TakeDamage* evt)
 	std::cerr << "Damage taken: " << evt->amount << ", hp remaining: " << hp << "\n";
 }
 
-void Component::Health::handleEvent(Event::DoAttack* attackDamage)
+void Component::Health::handleEvent(Event::DealDamage* attackDamage)
 {
 	std::cerr << "Smack!\n";
 

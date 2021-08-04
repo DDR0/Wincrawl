@@ -16,10 +16,9 @@ class Entity;
 namespace Event {
 	//An event is something which happens. Eg., you stab something or get stabbed, you are drawn on screen, etc.
 
-	class Base {};
+	struct Base {};
 
-	class Damage : public Event::Base {
-	public:
+	struct Damage: Base {
 		int amount{ 0 };
 		struct type {
 			bool physical{};
@@ -34,11 +33,10 @@ namespace Event {
 		};
 		type type{};
 	};
-	class TakeDamage : public Event::Damage {};
-	class DoAttack : public Event::Damage {};
+	struct DealDamage: Damage {};
+	struct TakeDamage: Damage {};
 
-	class GetRendered : public Event::Base {
-	public:
+	struct GetRendered : public Base {
 		const char* glyph{ nullptr };
 		Color fgColor{ 0xFF0000 };
 		Color bgColor{ 0xFF0000 }; //needs some concept of an alpha channel, so disused for now
@@ -59,13 +57,20 @@ namespace Component {
 		Entity* entity{ nullptr };
 		Base(Entity* e) : entity(e) {}
 		
+		//Ideally, we'd figure out a way to make orderByPriority() use this, but I can't get it to work.
 		std::weak_ordering operator<=>(const Base& other) const {
 			return priority() <=> other.priority();
+		};
+		
+		struct orderByPriority {
+			bool operator() (const auto& lhs, const auto& rhs) const {
+				return lhs->priority() < rhs->priority();
+			}
 		};
 
 		//Specializations are needed, otherwise base just gets called.
 		virtual void handleEvent(Event::TakeDamage*) {};
-		virtual void handleEvent(Event::DoAttack*) {};
+		virtual void handleEvent(Event::DealDamage*) {};
 		virtual void handleEvent(Event::GetRendered*) {};
 	};
 
@@ -78,7 +83,7 @@ namespace Component {
 		Health(Entity* e, int startingHP): Base(e), hp(startingHP) {}
 
 		void handleEvent(Event::TakeDamage*) override;
-		void handleEvent(Event::DoAttack*) override;
+		void handleEvent(Event::DealDamage*) override;
 	};
 
 	class Render : public Base {
@@ -101,38 +106,36 @@ namespace Component {
 class Entity {
 	//std::vector<Component::Base*> components{};
 	
-	//TODO: Is this needed?
-	struct custom_compare
-	{
-		bool operator() (const auto& lhs, const auto& rhs) const
-		{
-			std::cerr << "comparison 2: " << (int)lhs->priority() << ", " << (int)rhs->priority() << "\n";
-			return lhs < rhs;
-		}
-	};
-	std::multiset<std::unique_ptr<Component::Base>, custom_compare> components{};
+	//Ideally, we'd have this use Component::Base::operator<=>. But I can't figure out how.
+	//We can't use a function pointer (with decltype). We can't use a lambda either because
+	//we're in a header file and thefore an anonymous namespace.
+	std::multiset<
+		std::unique_ptr<Component::Base>, 
+		Component::Base::orderByPriority
+	> components {};
 
 public:
-	const char* glyph{ "￼" };
-	Color fgColor{ 0xFF0000 };
+	const char* glyph { "￼" };
+	Color fgColor { 0xFF0000 };
 	uint8_t type { 0 };
 	uint8_t zorder { 0 };
 
-	//TODO: Figure out how to get this into the .cpp file.
+	/*
+		Add a component to an entity. Returns a handle to that component.
+		
+		Note: This can't be moved into the .cpp file, because this type of
+			function can't be overridden.
+	*/
 	template<typename T, class ...Args>
-	void add(Args... args)
+	auto add(Args... args)
 		requires std::is_base_of<Component::Base, T>::value
 	{
-		components.insert(std::make_unique<T>(this, args...));
+		return components.insert(std::make_unique<T>(this, args...));
 	}
-
-	template<typename T>
-	void rem()
-		requires std::is_base_of<Component::Base, T>::value
-	{
-		//???
-		throw "unimplimented";
-	};
+	
+	void rem(auto component) {
+		components.erase(component);
+	}
 
 	template<typename EventType> //This function must be templated, otherwise the virtual function doesn't get overridden by the correct function.
 	EventType dispatch(EventType event)
