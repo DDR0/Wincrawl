@@ -153,6 +153,7 @@
     <ClCompile Include="places.cpp" />
     <ClCompile Include="things.cpp" />
     <ClCompile Include="triggers.cpp" />
+    <ClCompile Include="vector_tools.cpp" />
     <ClCompile Include="view.cpp" />
     <ClCompile Include="Wincrawl2.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -167,6 +168,7 @@
     <ClInclude Include="seq.hpp" />
     <ClInclude Include="things.hpp" />
     <ClInclude Include="triggers.hpp" />
+    <ClInclude Include="vector_tools.hpp" />
     <ClInclude Include="view.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
