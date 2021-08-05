@@ -128,4 +128,11 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, Plane const& plane);
 
 	Tile* getStartingTile();
+	
+	template<typename T=Entity, class ...Args>
+	auto summon(Args... args)
+		requires std::is_base_of<Entity, T>::value
+	{
+		return entities.emplace_back(new T());
+	}
 };
