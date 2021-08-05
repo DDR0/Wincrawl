@@ -242,12 +242,11 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	doorA2.tile->insert(hall2, doorA2.dir);
 	std::cerr << "Inserted " << hall2->listLinks() << ".\n";
 	
-	Entity* avatar{ entities.emplace_back(new Entity()) };
-	avatar->glyph = "@";
-	avatar->fgColor = 0xDDA24E;
-	
+	//Drop the player into the world.
 	using namespace Component;
 	using namespace Event;
+	
+	Entity* avatar{ entities.emplace_back(new Entity()) };
 	avatar->add<Render>("@", 0xDDA24E);
 	avatar->add<Health>(10);
 	auto attack = TakeDamage(avatar->dispatch(DealDamage{}));

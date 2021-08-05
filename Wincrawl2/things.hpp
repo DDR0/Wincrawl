@@ -61,12 +61,6 @@ namespace Component {
 		std::weak_ordering operator<=>(const Base& other) const {
 			return priority() <=> other.priority();
 		};
-		
-		struct orderByPriority {
-			bool operator() (const auto& lhs, const auto& rhs) const {
-				return lhs->priority() < rhs->priority();
-			}
-		};
 
 		//Specializations are needed, otherwise base just gets called.
 		virtual void handleEvent(Event::TakeDamage*) {};
@@ -106,20 +100,21 @@ namespace Component {
 class Entity {
 	//std::vector<Component::Base*> components{};
 	
+	struct orderComponentsByPriority {
+		bool operator() (const auto& lhs, const auto& rhs) const {
+			return lhs->priority() < rhs->priority();
+		}
+	};
+	
 	//Ideally, we'd have this use Component::Base::operator<=>. But I can't figure out how.
 	//We can't use a function pointer (with decltype). We can't use a lambda either because
 	//we're in a header file and thefore an anonymous namespace.
 	std::multiset<
 		std::unique_ptr<Component::Base>, 
-		Component::Base::orderByPriority
+		Entity::orderComponentsByPriority
 	> components {};
 
 public:
-	const char* glyph { "￼" };
-	Color fgColor { 0xFF0000 };
-	uint8_t type { 0 };
-	uint8_t zorder { 0 };
-
 	/*
 		Add a component to an entity. Returns a handle to that component.
 		

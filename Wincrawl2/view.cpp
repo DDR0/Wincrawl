@@ -5,6 +5,7 @@
 #include "color.hpp"
 
 #include "view.hpp"
+#include "things.hpp"
 
 View::RayWalker::RayWalker(std::vector<std::vector<Tile*>>* field_) : field(field_) {}
 
@@ -109,10 +110,14 @@ void View::render(std::ostream& target) {
 		for (int x = 0; x < viewSize[0]; x++) {
 			//Print entity on tile.
 			for (auto entity : grid[x][y]->occupants) {
+				auto paint = entity->dispatch(Event::GetRendered{});
+				if (!paint.glyph) continue;
+				
 				target
-					<< entity->fgColor.fg() << grid[x][y]->bgColor.bg()
-					<< reinterpret_cast<const char*>(entity->glyph)
+					<< paint.fgColor.fg() << grid[x][y]->bgColor.bg() //Just ignore background color for now, need a "none" or "alpha" variant.
+					<< reinterpret_cast<const char*>(paint.glyph)
 					<< seq::reset;
+				
 				goto nextTile;
 			}
 			
