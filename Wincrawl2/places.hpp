@@ -81,19 +81,22 @@ class Plane {
 	inline static uint_fast16_t TotalPlanesCreated{ 0 };
 	const uint_fast16_t id{ 0 };
 	std::minstd_rand rng;
-	int d(int max) {
+
+	//Unfortunately, std::uniform_int_distribution is pretty strongly resistant to templating.
+	//https://stackoverflow.com/questions/55273637/c-templated-uniform-distribution
+	inline int d(int max) {
 		//Returns a number, 𝑛, such that 0 ≤ 𝑛 < max.
 		return d(0, max);
 	};
-	int d(int min, int max) {
+	inline int d(int min, int max) {
 		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
 		return std::uniform_int_distribution<int>{ min, max }(rng);
 	};
-	double d(double max) {
+	inline double d(double max) {
 		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
 		return d(0., max);
 	};
-	double d(double min, double max) {
+	inline double d(double min, double max) {
 		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
 		return std::uniform_real_distribution{ min, max }(rng);
 	};
@@ -111,13 +114,23 @@ class Plane {
 		std::vector<RoomConnectionTile> connections; //TODO: Make this a vector of vectors, so we can have multi-tile wide connections.
 	};
 	std::vector<Room> rooms {};
-	
+
 	Room genSquareRoom(
-		const uint8_t roomX, const uint8_t roomY, 
+		const uint_fast8_t roomX, const uint_fast8_t roomY,
 		const bool wrapX = false, const bool wrapY = false,
-		const Color fg = Color{0,0,100}, //These can't be const, VS says no.
-		const Color bg = Color{0,0,0},
-		const uint8_t possibleDoors = 0b1111 //Bitfield, up/right/bottom/left like in CSS.
+		const Color fg = Color{ 0,0,100 }, //These can't be const, VS says no.
+		const Color bg = Color{ 0,0,0 },
+		const uint_fast8_t possibleDoors = 0b1111 //Bitfield, up/right/bottom/left like in CSS.
+	);
+
+	enum class genHallwayStyle { straight, zigZag, spiralCW, spiralCCW, irregular, COUNT };
+	Room genHallway(
+		const uint_fast8_t length,
+		const genHallwayStyle style
+	);
+	Room genHallway(
+		const uint_fast8_t length, const uint_fast8_t width,
+		const genHallwayStyle style
 	);
 	
 

@@ -1,4 +1,5 @@
 //Classes related to places, the tiles of the map itself.
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
@@ -51,39 +52,42 @@ void Tile::link(Tile* other, int8_t indexOut, int8_t indexIn) {
 	assert(other);
 	assert(indexOut >= 0 && indexOut < 6); //Direction index out of this tile must be specified.
 	assert(indexIn >= 0 && indexIn < 6);
-	
-	#ifndef NDEBUG
+
+	//Defined in Release mode by VS. We assume if all tiles linked successfully in debug mode, they will be fine in release mode.
+#ifndef NDEBUG
 	//Don't allow resetting tile links here? Use insert for that. (Prevent one-way links. Jumps in perspective are not desired, you can always go back.)
 	//This is more than just an assert because knowing **how** we messed up the linking is very helpful for development.
-	const bool badLink {
+	const bool badLink{
 		this->links[indexOut].tile() or
 		other->links[indexIn].tile()
 	};
 	if (badLink) {
 		std::cerr << "\nTile Link Error\n";
-		
+
 		std::cerr << "Tile " << this->getIDStr() << " indexOut " << (int)indexOut;
 		if (this->links[indexOut].tile()) {
 			std::cerr << " already points to tile "
 				<< this->links[indexOut].tile()->getIDStr() << ".\n";
-		} else {
+		}
+		else {
 			std::cerr << " clear.\n";
 		}
 		std::cerr << (this->listLinks(indexOut)) << "\n";
-		
+
 		std::cerr << "Tile " << other->getIDStr() << " indexOut " << (int)indexIn;
 		if (other->links[indexIn].tile()) {
 			std::cerr << " already points to tile "
 				<< other->links[indexIn].tile()->getIDStr() << ".\n";
-		} else {
+		}
+		else {
 			std::cerr << "clear.\n";
 		}
 		std::cerr << other->listLinks(indexIn) << "\n\n";
-		
+
 		assert(false);
 	}
-	#endif
-	
+#endif
+
 	other->links[indexIn].set(this, indexOut);
 	this->links[indexOut].set(other, indexIn);
 }
@@ -150,18 +154,18 @@ std::string Tile::getIDStr() {
 
 
 Plane::Room Plane::genSquareRoom(
-	const uint8_t roomX, const uint8_t roomY, 
+	const uint_fast8_t roomX, const uint_fast8_t roomY,
 	const bool wrapX, const bool wrapY,
 	const Color fg, const Color bg,
-	const uint8_t possibleDoors
+	const uint_fast8_t possibleDoors
 ) {
-	std::vector<std::vector<Tile*>> room{roomX, {roomY, nullptr}};
+	std::vector<std::vector<Tile*>> room{ roomX, {roomY, nullptr} };
 
 	for (uint8_t x = 0; x < roomX; x++) {
 		for (uint8_t y = 0; y < roomY; y++) {
 			Tile* tile{ tiles.emplace_back(new Tile()) };
 			room[x][y] = tile;
-			
+
 			tile->roomId = 10;
 			tile->glyph = (x + y) % 2 ? "," : ".";
 			tile->fgColor = fg;
@@ -180,63 +184,125 @@ Plane::Room Plane::genSquareRoom(
 			room[x][y]->link(room[x][(y + 1) % roomY], 2);
 		}
 	}
-	
+
 	auto doors = possibleDoors;
-	std::vector<RoomConnectionTile> connections {};
+	std::vector<RoomConnectionTile> connections{};
 	if (!wrapX) {
-		if (doors & 0b0100) connections.emplace_back(room[roomX-1][roomY/2], 1);
-		if (doors & 0b0001) connections.emplace_back(room[      0][roomY/2], 3);
+		if (doors & 0b0100) connections.emplace_back(room[roomX - 1][roomY / 2], 1);
+		if (doors & 0b0001) connections.emplace_back(room[0][roomY / 2], 3);
 	}
 	if (!wrapY) {
-		if (doors & 0b1000) connections.emplace_back(room[roomX/2][      0], 0);
-		if (doors & 0b0010) connections.emplace_back(room[roomX/2][roomY-1], 2);
+		if (doors & 0b1000) connections.emplace_back(room[roomX / 2][0], 0);
+		if (doors & 0b0010) connections.emplace_back(room[roomX / 2][roomY - 1], 2);
 	}
-	
-	std::cout << "Genned room.\n";
-	for (auto c : connections) {
-		std::cout << "Tile " << c.tile->getIDStr() << ": " << c.tile->listLinks(c.dir) << "\n";
+
+	return Room{ room[roomX / 2][roomY / 2], connections };
+}
+
+Plane::Room Plane::genHallway(
+	const uint_fast8_t length,
+	const Plane::genHallwayStyle style
+) {
+	return genHallway(length, 1, style);
+}
+Plane::Room Plane::genHallway(
+	const uint_fast8_t length, const uint_fast8_t width,
+	const Plane::genHallwayStyle style
+) {
+	std::vector<Tile*> hall{ static_cast<size_t>(length) * static_cast<size_t>(width), nullptr };
+
+	//genHallwayStyle
+	constexpr int CURVE_TYPES = 7;
+	const uint_fast8_t modifier = d(CURVE_TYPES);
+	static const std::array<std::function<int8_t(int, int)>, 5> curvature{
+		[](int tileNum, int totalTiles) { //straight
+			return 1;
+		},
+		[](int tileNum, int totalTiles) { //zig-zag
+			return std::array<int8_t,3>{1,2,1}[static_cast<size_t>(tileNum / 1.0 / totalTiles * 3.0)];
+		},
+		[modifier](int tileNum, int totalTiles) { //spiralCW
+			return std::array<std::array<int8_t,6>, CURVE_TYPES>{
+				std::array<int8_t, 6>{1, 2, 1, 2, 1, 2}, //small spiral
+				std::array<int8_t, 6>{1, 1, 2, 1, 1, 2}, //med spiral
+				std::array<int8_t, 6>{1, 1, 2, 1, 1, 2}, //med spiral
+				std::array<int8_t, 6>{1, 1, 1, 1, 1, 2}, //large spiral
+				std::array<int8_t, 6>{1, 1, 1, 1, 2, 2}, //staircase
+				std::array<int8_t, 6>{1, 1, 1, 1, 2, 2}, //staircase
+				std::array<int8_t, 6>{1, 2, 2, 1, 1, 1}, //staircase
+			}[modifier][tileNum % 6];
+		},
+		[modifier](int tileNum, int totalTiles) { //spiralCCW
+			return std::array<std::array<int8_t,6>, CURVE_TYPES>{
+				std::array<int8_t, 6>{1, 0, 1, 0, 1, 0}, //small spiral
+				std::array<int8_t, 6>{1, 1, 0, 1, 1, 0}, //med spiral
+				std::array<int8_t, 6>{1, 1, 0, 1, 1, 0}, //med spiral
+				std::array<int8_t, 6>{1, 1, 1, 1, 1, 0}, //large spiral
+				std::array<int8_t, 6>{1, 1, 1, 1, 0, 0}, //staircase
+				std::array<int8_t, 6>{1, 0, 0, 1, 1, 1}, //staircase
+			}[modifier][tileNum % 6];
+		},
+		[this](int tileNum, int totalTiles) { //irregular
+			return d(2);
+		}
+	};
+	static_assert(curvature.size() == static_cast<int>(genHallwayStyle::COUNT));
+
+	tiles.emplace_back(new Tile());
+	for (int i : std::views::iota(1, static_cast<int>(hall.size()))) {
+		Tile* head{ tiles.back() };
+		Tile* tile{ tiles.emplace_back(new Tile()) };
+		head->link(
+			tile,
+			curvature[static_cast<int>(style)](i, static_cast<int>(hall.size()))
+		);
 	}
-	
-	return Room{ room[roomX/2][roomY/2], connections };
+
+	std::vector<RoomConnectionTile> connections{};
+	connections.emplace_back(tiles.front(), 1);
+	connections.emplace_back(tiles.back(), 3);
+
+	return Room{ hall.at(0), connections };
 }
 
 Plane::Plane(std::minstd_rand rng_, int numRooms)
 	: id(TotalPlanesCreated++), rng(rng_)
 {
-	
+
 	//auto choose10 { std::bind(std::uniform_int_distribution<int>{ 0, 10 }, rng) };
 	std::cout << "rng says " << d(20) << "\n";
 	std::cout << "rng says " << d(20) << "\n";
 	std::cout << "rng says " << d(20) << "\n";
 	std::cout << "rng says " << d(20) << "\n";
-	
+
 	tiles.reserve(512);
 	rooms.reserve(numRooms);
+
 	for ([[maybe_unused]] auto _ : std::views::iota(0, 10)) {
 		rooms.emplace_back(genSquareRoom(
-			d(2,5) + d(2,5), d(2,5) + d(2,5), 
-			!d(4), false, 
-			Color{d(30.,115.), d(58.,  70.), d(35., 50.)},
-			Color{d(30.,115.), d(70., 100.), d( 0.,  6.)}
+			d(2, 5) + d(2, 5), d(2, 5) + d(2, 5),
+			!d(4), false,
+			Color{ d(30.,115.), d(58.,  70.), d(35., 50.) },
+			Color{ d(30.,115.), d(70., 100.), d(0.,  6.) }
 		));
 	}
-	
+
 	RoomConnectionTile doorA1{ rooms.front().connections.front() };
 	RoomConnectionTile doorA2{ rooms.front().connections.back() };
 	RoomConnectionTile doorB1{ rooms.back().connections.front() };
 	RoomConnectionTile doorB2{ rooms.back().connections.back() };
-	
+
 	std::cerr << "Linking " << doorA1.tile->listLinks(doorA1.dir) << " to " << doorB2.tile->listLinks(doorB2.dir) << ".\n";
 	doorA1.tile->link(doorB2.tile, doorA1.dir, doorB2.dir);
-	
+
 	std::cerr << "Linking " << doorA2.tile->listLinks(doorA2.dir) << " to " << doorB1.tile->listLinks(doorB1.dir) << ".\n";
 	doorA2.tile->link(doorB1.tile, doorA2.dir, doorB1.dir);
-	
+
 	Tile* hall1{ tiles.emplace_back(new Tile()) };
 	std::cerr << "Inserting from " << doorA1.tile->listLinks(doorA1.dir) << " in " << (int)doorA1.dir << ".\n";
 	doorA1.tile->insert(hall1, doorA1.dir);
 	std::cerr << "Inserted " << hall1->getIDStr() << " " << hall1->listLinks() << ".\n";
-	
+
 	Tile* hall2{ tiles.emplace_back(new Tile()) };
 	std::cerr << "Inserting from " << doorA2.tile->listLinks(doorA1.dir) << " in " << (int)doorA2.dir << ".\n";
 	doorA2.tile->insert(hall2, doorA2.dir);
