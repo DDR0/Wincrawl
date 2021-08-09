@@ -283,7 +283,8 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	tiles.reserve(512);
 	rooms.reserve(numRooms);
 
-	for ([[maybe_unused]] auto _ : std::views::iota(0, 10)) {
+	//First, generate a number of rooms.
+	for ([[maybe_unused]] auto _ : std::views::iota(0, numRooms)) {
 		rooms.emplace_back(genSquareRoom(
 			d(2, 5) + d(2, 5), d(2, 5) + d(2, 5),
 			!d(4), false,
@@ -294,8 +295,9 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 		//Randomise each room's connections.
 		std::shuffle(rooms.back().connections.begin(), rooms.back().connections.end(), rng);
 	}
-
-	for (auto i : std::views::iota(1, static_cast<int>(rooms.size()))) {
+	
+	//Second, link all the rooms up so none are orphaned.
+	for (size_t i : std::views::iota(1, static_cast<int>(rooms.size()))) {
 		auto roomAConns { &rooms.at(i - 1).connections };
 		auto roomBConns { &rooms.at(i - 0).connections };
 		auto hallConns{
@@ -311,13 +313,13 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 		assert(("Map gen error: Room B has no connections.", roomBConns->size()));
 		assert(("Map gen error: Connecting hall has no connections.", hallConns.size() >= 2));
 
-		RoomConnectionTile* roomA{ &roomAConns->back() };
-		RoomConnectionTile* roomB{ &roomBConns->back() };
+		RoomConnectionTile roomA{ roomAConns->back() };
+		RoomConnectionTile roomB{ roomBConns->back() };
 		RoomConnectionTile doorA{ hallConns.at(0) };
 		RoomConnectionTile doorB{ hallConns.at(1) };
 
-		roomA->tile->link(doorA.tile, roomA->dir, doorA.dir);
-		roomB->tile->link(doorB.tile, roomB->dir, doorB.dir);
+		roomA.tile->link(doorA.tile, roomA.dir, doorA.dir);
+		roomB.tile->link(doorB.tile, roomB.dir, doorB.dir);
 
 		//Consume used doors.
 		roomAConns->pop_back();
