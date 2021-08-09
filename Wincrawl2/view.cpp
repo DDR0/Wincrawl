@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <sstream>
 
 #include "seq.hpp"
 #include "color.hpp"
@@ -106,6 +107,8 @@ void View::render(std::ostream& target) {
 	//We don't ever trace the center tile, just those around it.
 	grid[viewloc[0]][viewloc[1]] = loc;
 
+	std::ostringstream buffer;
+
 	for (int y = 0; y < viewSize[1]; y++) {
 		for (int x = 0; x < viewSize[0]; x++) {
 			//Print entity on tile.
@@ -113,7 +116,7 @@ void View::render(std::ostream& target) {
 				auto paint = entity->dispatch(Event::GetRendered{});
 				if (!paint.glyph) continue;
 				
-				target
+				buffer
 					<< paint.fgColor.fg() << grid[x][y]->bgColor.bg() //Just ignore background color for now, need a "none" or "alpha" variant.
 					<< reinterpret_cast<const char*>(paint.glyph)
 					<< seq::reset;
@@ -122,15 +125,17 @@ void View::render(std::ostream& target) {
 			}
 			
 			//If no entities, print tile itself.
-			target
+			buffer
 				<< grid[x][y]->fgColor.fg() << grid[x][y]->bgColor.bg()
 				<< reinterpret_cast<const char*>(grid[x][y]->glyph)
 				<< seq::reset;
 			
 			nextTile: continue;
 		}
-		target << "\n";
+		buffer << "\n";
 	}
+
+	target << buffer.str();
 }
 
 //Borrowed and modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
@@ -209,7 +214,13 @@ void View::moveCamera(int direction) {
 void View::move(int direction) {
 	moveCamera(direction);
 	
-	std::cout << seq::clear; //TODO: Move this to somewhere more appropriate? We'll probably want to composit squares together for different viewpoints and text.
+	static bool hasMoved = false;
+	if (!hasMoved) {
+		hasMoved = true;
+		std::cout << seq::clear; //TODO: Move this to somewhere more appropriate? We'll probably want to composit squares together for different viewpoints and text.
+	}
+	std::cout << "[0;0H"; //Move the cursor to 0,0. See previous comment.
+
 	render(std::cout);
 }
 

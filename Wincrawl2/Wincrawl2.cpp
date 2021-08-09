@@ -38,7 +38,7 @@ int main() {
 	
 	std::minstd_rand rng { 5 }; //Note: Can call .seed(x) if needed. Does not return same on all platforms.
 	(void) rng(); //Advance one step, initial value seems to be the seed otherwise. Cast to void to avoid VS unused value warning.
-	Plane plane0{ rng, 4 };
+	Plane plane0{ rng, 10 };
 	
 	{
 		//Drop the player into the world.
