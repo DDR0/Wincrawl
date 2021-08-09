@@ -90,23 +90,27 @@ class Plane {
 	};
 	inline int d(int min, int max) {
 		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
-		return std::uniform_int_distribution<int>{ min, max }(rng);
+		return std::uniform_int_distribution<int>{ min, max-1 }(rng);
 	};
 	inline double d(double max) {
-		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
+		//Returns a number, 𝑛, such that min ≤ 𝑛 ≤ max.
 		return d(0., max);
 	};
 	inline double d(double min, double max) {
-		//Returns a number, 𝑛, such that min ≤ 𝑛 < max.
-		return std::uniform_real_distribution{ min, max }(rng);
+		//Returns a number, 𝑛, such that min ≤ 𝑛 ≤ max.
+		return std::uniform_real_distribution{ min, max-1 }(rng);
 	};
 
 	std::vector<Tile*> tiles; //List of all tiles we created.
+	inline Tile* newOwnedTile() { return tiles.emplace_back(new Tile()); }
+
 	std::vector<Entity*> entities; //List of all entities we created. TODO: Track these as smart pointers, since we'll have many owners of indefinite lifetimes?
 	
 	struct RoomConnectionTile {
 		Tile* tile;
 		int8_t dir;
+
+		RoomConnectionTile(Tile* tile_, int8_t dir_);
 	};
 	
 	struct Room {
