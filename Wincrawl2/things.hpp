@@ -56,6 +56,7 @@ namespace Component {
 
 		Entity* entity{ nullptr };
 		Base(Entity* e) : entity(e) {}
+		virtual ~Base() = default; //Let delete remove the correct subclass when unloading a Plane of existence.
 		
 		//Ideally, we'd figure out a way to make orderByPriority() use this, but I can't get it to work.
 		std::weak_ordering operator<=>(const Base& other) const {
