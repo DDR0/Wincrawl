@@ -158,6 +158,17 @@ Plane::RoomConnectionTile::RoomConnectionTile(Tile* tile_, int8_t dir_) : tile(t
 	assert(("Cannot create doorway: Direction does not point to a wall.", !tile->links[dir]));
 }
 
+bool Plane::allRoomConnectionsAreFree(std::vector<Room> rooms) {
+	for (auto& room : rooms) {
+		for (auto& connection : room.connections) {
+			if (connection.tile->links[connection.dir]) {
+				return false;
+			}
+		}
+	}
+	return true;
+};
+
 Plane::Room Plane::genSquareRoom(
 	const uint_fast8_t roomX, const uint_fast8_t roomY,
 	const bool wrapX, const bool wrapY,
@@ -221,16 +232,31 @@ Plane::Room Plane::genHallway(
 	hall.reserve(totalHallTiles);
 
 	//genHallwayStyle
-	constexpr int CURVE_TYPES = 7;
-	const uint_fast8_t modifier = d(CURVE_TYPES);
+	constexpr int CURVE_TYPES { 7 };
+	const int_fast8_t zigZagRotation { d(2) ? -1 : 1 };
+	const uint_fast8_t zigZagType { d(2) };
+	const uint_fast8_t curveIndex { d(CURVE_TYPES) };
 	static const std::array<std::function<int8_t(int, int)>, 5> curvature{
 		[](int tileNum, int totalTiles) { //straight
 			return 1;
 		},
-		[](int tileNum, int totalTiles) { //zig-zag
-			return std::array<int8_t,3>{1,2,1}[static_cast<size_t>(tileNum / 1.0 / totalTiles * 3.0)];
+		[&zigZagRotation, &zigZagType](int tileNum, int totalTiles) { //zig-zag, must capture closures by reference or they never change across invocations.
+			const std::array<size_t, 2> patSize {2,3};
+			const std::array<std::array<int, 3>, 2> pattern {{
+				{0,1},
+				{0,1,0},
+			}};
+			auto currAbsoluteDirection = pattern[zigZagType][static_cast<size_t>((tileNum+0) / 1.0 / (totalTiles+1) * patSize[zigZagType])];
+			auto nextAbsoluteDirection = pattern[zigZagType][static_cast<size_t>((tileNum+1) / 1.0 / (totalTiles+1) * patSize[zigZagType])];
+			std::cerr << "zzdir: tile "
+				<< tileNum << "/" << totalTiles << " "
+				<< 1 + (currAbsoluteDirection - nextAbsoluteDirection) * zigZagRotation
+				<< " from " << (int)currAbsoluteDirection << "-" << (int)nextAbsoluteDirection
+				<< ", rot " << (int)zigZagRotation << ", type " << (int)zigZagType
+				<< "\n";
+			return 1 + (currAbsoluteDirection - nextAbsoluteDirection) * zigZagRotation;
 		},
-		[modifier](int tileNum, int totalTiles) { //spiralCW
+		[&curveIndex](int tileNum, int totalTiles) { //spiralCW
 			return std::array<std::array<int8_t,6>, CURVE_TYPES>{
 				std::array<int8_t, 6>{1, 2, 1, 2, 1, 2}, //small spiral
 				std::array<int8_t, 6>{1, 1, 2, 1, 1, 2}, //med spiral
@@ -239,17 +265,18 @@ Plane::Room Plane::genHallway(
 				std::array<int8_t, 6>{1, 1, 1, 1, 2, 2}, //staircase
 				std::array<int8_t, 6>{1, 1, 1, 1, 2, 2}, //staircase
 				std::array<int8_t, 6>{1, 2, 2, 1, 1, 1}, //staircase
-			}[modifier][tileNum % 6];
+			}[curveIndex][tileNum % 6];
 		},
-		[modifier](int tileNum, int totalTiles) { //spiralCCW
+		[&curveIndex](int tileNum, int totalTiles) { //spiralCCW
 			return std::array<std::array<int8_t,6>, CURVE_TYPES>{
 				std::array<int8_t, 6>{1, 0, 1, 0, 1, 0}, //small spiral
 				std::array<int8_t, 6>{1, 1, 0, 1, 1, 0}, //med spiral
 				std::array<int8_t, 6>{1, 1, 0, 1, 1, 0}, //med spiral
 				std::array<int8_t, 6>{1, 1, 1, 1, 1, 0}, //large spiral
 				std::array<int8_t, 6>{1, 1, 1, 1, 0, 0}, //staircase
+				std::array<int8_t, 6>{1, 1, 1, 1, 0, 0}, //staircase
 				std::array<int8_t, 6>{1, 0, 0, 1, 1, 1}, //staircase
-			}[modifier][tileNum % 6];
+			}[curveIndex][tileNum % 6];
 		},
 		[this](int tileNum, int totalTiles) { //irregular
 			return d(2);
@@ -257,12 +284,14 @@ Plane::Room Plane::genHallway(
 	};
 	static_assert(curvature.size() == static_cast<int>(genHallwayStyle::COUNT));
 
+	//std::cerr << "Starting hall: (len " << totalHallTiles << ")\n";
 	hall.emplace_back(newOwnedTile());
 	for (int i : std::views::iota(1,totalHallTiles)) {
 		Tile* head{ hall.back() };
 		Tile* tile{ hall.emplace_back(newOwnedTile()) };
-
+		
 		auto indexOut = curvature[static_cast<int>(style)](i,totalHallTiles);
+		//std::cerr << "Style " << (int)style << ": " << (int)indexOut << " at step " << i << "/" << totalHallTiles << "\n";
 		head->link(tile, indexOut, 3);
 	}
 
@@ -271,6 +300,40 @@ Plane::Room Plane::genHallway(
 	connections.emplace_back(hall.back(), 1);
 
 	return Room{ hall.at(totalHallTiles/2), connections };
+}
+
+void Plane::linkConnectionsWithHallway(auto& roomAConns, auto& roomBConns) {
+	
+	auto hallConns{
+		(
+			d(2)
+				? genHallway(1, genHallwayStyle::straight)
+				: genHallway((d(4, 9) + d(4, 9)) / 2,
+					static_cast<genHallwayStyle>(d(static_cast<int>(genHallwayStyle::COUNT))))
+		).connections
+	};
+
+	assert(("Map gen error: Room A has no connections.", roomAConns.size()));
+	assert(("Map gen error: Room B has no connections.", roomBConns.size()));
+	assert(("Map gen error: Connecting hall has no connections.", hallConns.size() >= 2));
+	if(&roomAConns == &roomBConns) {
+		assert((
+			"Map gen error: Room doesn't have enough open connections to connect to itself.",
+			roomAConns.size() >= 2
+		));
+	}
+
+	RoomConnectionTile roomA{ roomAConns.back() };
+	roomAConns.pop_back(); //Consume used doors.
+	RoomConnectionTile roomB{ roomBConns.back() };
+	roomBConns.pop_back();
+	
+	RoomConnectionTile doorA{ hallConns.at(0) };
+	RoomConnectionTile doorB{ hallConns.at(1) };
+
+	roomA.tile->link(doorA.tile, roomA.dir, doorA.dir);
+	roomB.tile->link(doorB.tile, roomB.dir, doorB.dir);
+
 }
 
 Plane::Plane(std::minstd_rand rng_, int numRooms)
@@ -282,9 +345,11 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 
 	tiles.reserve(512);
 	rooms.reserve(numRooms);
+	
+	const auto iota { std::views::iota };
 
 	//First, generate a number of rooms.
-	for ([[maybe_unused]] auto _ : std::views::iota(0, numRooms)) {
+	for ([[maybe_unused]] auto _ : iota(0, numRooms)) {
 		rooms.emplace_back(genSquareRoom(
 			d(2, 5) + d(2, 5), d(2, 5) + d(2, 5),
 			!d(4), false,
@@ -296,35 +361,51 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 		std::shuffle(rooms.back().connections.begin(), rooms.back().connections.end(), rng);
 	}
 	
-	//Second, link all the rooms up so none are orphaned.
-	for (size_t i : std::views::iota(1, static_cast<int>(rooms.size()))) {
-		auto roomAConns { &rooms.at(i - 1).connections };
-		auto roomBConns { &rooms.at(i - 0).connections };
-		auto hallConns{
-			(
-				d(2)
-					? genHallway(1, genHallwayStyle::straight)
-					: genHallway((d(4, 24) + d(4, 24)) / 2,
-						static_cast<genHallwayStyle>(d(static_cast<int>(genHallwayStyle::COUNT))))
-			).connections
-		};
-
-		assert(("Map gen error: Room A has no connections.", roomAConns->size()));
-		assert(("Map gen error: Room B has no connections.", roomBConns->size()));
-		assert(("Map gen error: Connecting hall has no connections.", hallConns.size() >= 2));
-
-		RoomConnectionTile roomA{ roomAConns->back() };
-		RoomConnectionTile roomB{ roomBConns->back() };
-		RoomConnectionTile doorA{ hallConns.at(0) };
-		RoomConnectionTile doorB{ hallConns.at(1) };
-
-		roomA.tile->link(doorA.tile, roomA.dir, doorA.dir);
-		roomB.tile->link(doorB.tile, roomB.dir, doorB.dir);
-
-		//Consume used doors.
-		roomAConns->pop_back();
-		roomBConns->pop_back();
+	assert(allRoomConnectionsAreFree(rooms));
+	
+	//Second, link all the rooms up so we don't get stuck.
+	for (size_t i : iota(1, static_cast<int>(rooms.size()))) {
+		linkConnectionsWithHallway(
+			rooms.at(i - 1).connections, 
+			rooms.at(i - 0).connections
+		);
 	}
+	
+	assert(allRoomConnectionsAreFree(rooms));
+	
+	//Third, link up a few more rooms so it's not just a linear labyrinth. (We have consumed over half our linkage opportunities at this point.)
+	const int extraConnections = rooms.size()/2;
+	for (int connectionNumber : std::views::iota(0, extraConnections)) {
+		//Replace the following with https://github.com/liamwhite/format-preserving/blob/7da768a732b8bc79d24a5d195a61040271014321/src/main.rs#L3-L58 at some point, it does what we want much better and without the O(n) memory cost.
+		//Constexpr-size only. std::shuffle_order_engine<std::linear_congruential_engine<uint_fast8_t, 1, 1, 10>, 10> order { std::uniform_int_distribution<uint_fast8_t>{ 0, 10-1 }(rng) };
+		
+		Room* connect[2] { nullptr };
+		for (int i : iota(0,2)) {
+			for ([[maybe_unused]] auto attempt : iota(0,10)) {
+				Room* room { &rooms.at(d(static_cast<int>(rooms.size()))) };
+				
+				if (connect[0] == room && room->connections.size() < 2) {
+					//Reject the second room if it's the same as the first room and doesn't have enough connections to connect to itself.
+				}
+				else if (room->connections.size() < 1) {
+					//Reject a room if it doesn't have any connections left.
+				} 
+				else {
+					connect[i] = room;
+					break;
+				}
+			}
+		}
+		
+		if (!connect[0] || !connect[1]) {
+			std::cerr << "Warning: Could not find spare doorway for room interlink " << connectionNumber << "/" << extraConnections << ".\nWarning: Skipping further interlink steps.\n";
+			break;
+		}
+		
+		linkConnectionsWithHallway(connect[0]->connections, connect[1]->connections);
+	}
+	
+	assert(allRoomConnectionsAreFree(rooms));
 }
 
 Plane::~Plane() {

@@ -118,6 +118,7 @@ class Plane {
 		std::vector<RoomConnectionTile> connections; //TODO: Make this a vector of vectors, so we can have multi-tile wide connections.
 	};
 	std::vector<Room> rooms {};
+	static bool allRoomConnectionsAreFree(std::vector<Room> rooms);
 
 	Room genSquareRoom(
 		const uint_fast8_t roomX, const uint_fast8_t roomY,
@@ -136,6 +137,8 @@ class Plane {
 		const uint_fast8_t length, const uint_fast8_t width,
 		const genHallwayStyle style
 	);
+	
+	void linkConnectionsWithHallway(auto& roomAConns, auto& roomBConns);
 	
 
 public:
