@@ -15,9 +15,7 @@
 #                     to run the compiler. If ccache is not installed (i.e.
 #                     found in PATH), this option has no effect.
 
-OPTIMIZE?=yes
-USE_LUA?=yes
-USE_BOX2D?=yes
+OPTIMIZE?=no
 
 CCACHE?=ccache
 USE_CCACHE?=$(shell which $(CCACHE) > /dev/null 2>&1 && echo yes)
