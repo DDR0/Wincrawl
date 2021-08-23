@@ -16,10 +16,11 @@
 #                     found in PATH), this option has no effect.
 
 OPTIMIZE?=no
+DEBUG?=yes
 
 CCACHE?=ccache
 USE_CCACHE?=$(shell which $(CCACHE) > /dev/null 2>&1 && echo yes)
-ifneq ($(USE_CCACHE),yes)
+ifneq ($(USE_CCACHE), yes)
 CCACHE=
 USE_CCACHE=no
 endif
@@ -36,6 +37,10 @@ endif
 
 ifeq ($(OPTIMIZE),yes)
 BASE_CXXFLAGS += -O2
+endif
+
+ifneq ($(DEBUG), yes)
+BASE_CXXFLAGS += -DNDEBUG
 endif
 
 BASE_CXXFLAGS += -Wall -Werror
