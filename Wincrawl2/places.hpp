@@ -107,10 +107,13 @@ class Plane {
 	std::vector<Entity*> entities; //List of all entities we created. TODO: Track these as smart pointers, since we'll have many owners of indefinite lifetimes?
 	
 	struct RoomConnectionTile {
-		Tile* tile;
 		int8_t dir;
+		Tile* tile;
+		std::vector<Tile*> tiles;
 
 		RoomConnectionTile(Tile* tile_, int8_t dir_);
+		
+		inline Tile* primary() { return tile; }
 	};
 	
 	struct Room {
@@ -120,12 +123,19 @@ class Plane {
 	std::vector<Room> rooms {};
 	static bool allRoomConnectionsAreFree(std::vector<Room> rooms);
 
-	Room genSquareRoom(
+	Room genSquareRoom( //Can also generate cylindrical rooms and spherical rooms with wrapping, although the latter isn't very useful as it is inescapable.
 		const uint_fast8_t roomX, const uint_fast8_t roomY,
 		const bool wrapX = false, const bool wrapY = false,
 		const Color fg = Color{ 0,0,100 }, //These can't be const, VS says no.
 		const Color bg = Color{ 0,0,0 },
 		const uint_fast8_t possibleDoors = 0b1111 //Bitfield, up/right/bottom/left like in CSS.
+	);
+	
+	Room genConicalRoom(
+		const int height,
+		const Color fg = Color{ 0,0,100 }, //These can't be const, VS says no.
+		const Color bg = Color{ 0,0,0 },
+		const int possibleDoors = 0b111 //Bitfield, sides 1/2/3.
 	);
 
 	enum class genHallwayStyle { straight, zigZag, spiralCW, spiralCCW, irregular, COUNT };

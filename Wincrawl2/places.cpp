@@ -156,6 +156,9 @@ std::string Tile::getIDStr() {
 
 Plane::RoomConnectionTile::RoomConnectionTile(Tile* tile_, int8_t dir_) : tile(tile_), dir(dir_) {
 	assert(("Cannot create doorway: Direction does not point to a wall.", !tile->links[dir]));
+	
+	tiles.reserve(6);
+	tiles.push_back(tile_);
 }
 
 bool Plane::allRoomConnectionsAreFree(std::vector<Room> rooms) {
@@ -177,8 +180,8 @@ Plane::Room Plane::genSquareRoom(
 ) {
 	std::vector<std::vector<Tile*>> room{ roomX, {roomY, nullptr} };
 
-	for (uint8_t x = 0; x < roomX; x++) {
-		for (uint8_t y = 0; y < roomY; y++) {
+	for (uint_fast8_t x = 0; x < roomX; x++) {
+		for (uint_fast8_t y = 0; y < roomY; y++) {
 			Tile* tile{ newOwnedTile() };
 			room[x][y] = tile;
 
@@ -189,14 +192,14 @@ Plane::Room Plane::genSquareRoom(
 		}
 	}
 
-	for (uint8_t x = 0; x < roomX - (!wrapX); x++) { //-0 to loop, -1 to not
-		for (uint8_t y = 0; y < roomY; y++) {
+	for (uint_fast8_t x = 0; x < roomX - (!wrapX); x++) { //-0 to loop, -1 to not
+		for (uint_fast8_t y = 0; y < roomY; y++) {
 			room[x][y]->link(room[(x + 1) % roomX][y], 1);
 		}
 	}
 
-	for (uint8_t x = 0; x < roomX; x++) {
-		for (uint8_t y = 0; y < roomY - (!wrapY); y++) { //-0 to loop, -1 to not
+	for (uint_fast8_t x = 0; x < roomX; x++) {
+		for (uint_fast8_t y = 0; y < roomY - (!wrapY); y++) { //-0 to loop, -1 to not
 			room[x][y]->link(room[x][(y + 1) % roomY], 2);
 		}
 	}
@@ -213,6 +216,92 @@ Plane::Room Plane::genSquareRoom(
 	}
 
 	return Room{ room[roomX / 2][roomY / 2], connections };
+}
+
+Plane::Room Plane::genConicalRoom(
+	const int height,
+	const Color fg, const Color bg,
+	const int possibleDoors
+) {
+	//Assemble a cone from an L-shape, gluing together the concave edges.
+	// █  ← top
+	// ██ ← bottom
+	std::vector<std::vector<Tile*>> top{ height, {height, nullptr} };
+	std::vector<std::vector<Tile*>> bottom{ height*2, {height, nullptr} };
+	
+	const auto iota { std::views::iota };
+	
+	//Gen top tiles.
+	for (int x : iota(0, height)) {
+		for (int y : iota(0, height)) {
+			Tile* tile{ newOwnedTile() };
+			top[x][y] = tile;
+			
+			tile->roomId = 10;
+			tile->glyph = (x + y) % 2 ? "1" : "2";
+			tile->fgColor = fg;
+			tile->bgColor = bg;
+		}
+	}
+	
+	//Link top tiles horizontally.
+	for (int x : iota(0, height-1)) {
+		for (int y : iota(0, height)) {
+			top[x][y]->link(top[x+1][y], 1);
+		}
+	}
+	
+	//Link top tiles vertically.
+	for (int x : iota(0, height)) {
+		for (int y : iota(0, height-1)) {
+			top[x][y]->link(top[x][y+1], 2);
+		}
+	}
+	
+	//Gen bottom tiles. (Twice as wide as top, since the top will mesh with the side.)
+	for (int x : iota(0, height*2)) {
+		for (int y : iota(0, height)) {
+			Tile* tile{ newOwnedTile() };
+			bottom[x][y] = tile;
+			
+			tile->roomId = 10;
+			tile->glyph = (x + y) % 2 ? "3" : "4";
+			tile->fgColor = fg;
+			tile->bgColor = bg;
+		}
+	}
+	
+	//Link bottom tiles horizontally.
+	for (int x : iota(0, height-1)) {
+		for (int y : iota(0, height)) {
+			bottom[x][y]->link(bottom[x+1][y], 1);
+		}
+	}
+	
+	//Link bottom tiles vertically.
+	for (int x : iota(0, height)) {
+		for (int y : iota(0, height-1)) {
+			bottom[x][y]->link(bottom[x][y+1], 2);
+		}
+	}
+	
+	//Link first half of the top of bottom tiles with the bottom of top tiles.
+	for (int i : iota(0, height)) {
+		top[i][height-1]->link(bottom[i][0], 1);
+	}
+	
+	//Link second half of the top of bottom tiles with the right side of top tiles.
+	for (int i : iota(0, height)) {
+		top[height-1][i]->link(bottom[height+i][0], 2, 3);
+	}
+
+	auto doors = possibleDoors;
+	std::vector<RoomConnectionTile> connections{}; //Offset slightly CCW since room is always an even number of tiles wide.
+	if (doors & 0b001) connections.emplace_back(top[height][0], 0);
+	if (doors & 0b010) connections.emplace_back(bottom[0][0], 1);
+	if (doors & 0b100) connections.emplace_back(bottom[height+1][height-1], 2);
+
+	return Room{ top[height-1][height-1], connections };
 }
 
 Plane::Room Plane::genHallway(
@@ -303,7 +392,6 @@ Plane::Room Plane::genHallway(
 }
 
 void Plane::linkConnectionsWithHallway(auto& roomAConns, auto& roomBConns) {
-	
 	auto hallConns{
 		(
 			d(2)
@@ -350,12 +438,24 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 
 	//First, generate a number of rooms.
 	for ([[maybe_unused]] auto _ : iota(0, numRooms)) {
-		rooms.emplace_back(genSquareRoom(
-			d(2, 5) + d(2, 5), d(2, 5) + d(2, 5),
-			!d(4), false,
-			Color{ d(30.,115.), d(58.,  70.), d(35., 50.) },
-			Color{ d(30.,115.), d(70., 100.), d(0.,  6.) }
-		));
+		switch (d(1)) {
+			break; case 0:
+				rooms.emplace_back(genSquareRoom(
+					d(2, 5) + d(2, 5), d(2, 5) + d(2, 5),
+					!d(4), false,
+					Color{ d(30.,115.), d(58.,  70.), d(35., 50.) },
+					Color{ d(30.,115.), d(70., 100.), d(0.,  6.) }
+				));
+			break; case 1:
+				rooms.emplace_back(genConicalRoom(
+					d(2, 5) + d(2, 5),
+					Color{ d(30.,115.), d(58.,  70.), d(35., 50.) },
+					Color{ d(30.,115.), d(70., 100.), d(0.,  6.) },
+					0b111
+				));
+			break; default:
+				assert(("Logic error.", false));
+		}
 
 		//Randomise each room's connections.
 		std::shuffle(rooms.back().connections.begin(), rooms.back().connections.end(), rng);
