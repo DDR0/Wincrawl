@@ -186,7 +186,7 @@ Plane::Room Plane::genSquareRoom(
 			room[x][y] = tile;
 
 			tile->roomId = 10;
-			tile->glyph = (x + y) % 2 ? "," : ".";
+			tile->glyph = &" \0 \0.\0,"[d(4) * 2];
 			tile->fgColor = fg;
 			tile->bgColor = bg;
 		}
@@ -221,15 +221,19 @@ Plane::Room Plane::genSquareRoom(
 Plane::Room Plane::genConicalRoom(
 	const int height,
 	const Color fg, const Color bg,
-	const int possibleDoors
+	const uint_least8_t possibleDoors
 ) {
 	//Assemble a cone from an L-shape, gluing together the concave edges.
 	// █  ← top
 	// ██ ← bottom
-	std::vector<std::vector<Tile*>> top{ height, {height, nullptr} };
-	std::vector<std::vector<Tile*>> bottom{ height*2, {height, nullptr} };
+	std::vector<std::vector<Tile*>> top{ static_cast<size_t>(height), {static_cast<size_t>(height), nullptr} };
+	std::vector<std::vector<Tile*>> bottom{ static_cast<size_t>(height)*2, {static_cast<size_t>(height), nullptr} };
 	
 	const auto iota { std::views::iota };
+
+	//Work around some math warnings regarding math on lesser integer width variables, even though it's fine in this case.
+	//iota() requires integers, array deindexing requires size_ts, so we do want both types.
+	const auto height_{ static_cast<size_t>(height) };
 	
 	//Gen top tiles.
 	for (int x : iota(0, height)) {
@@ -238,70 +242,70 @@ Plane::Room Plane::genConicalRoom(
 			top[x][y] = tile;
 			
 			tile->roomId = 10;
-			tile->glyph = (x + y) % 2 ? "1" : "2";
+			tile->glyph = &" \0 \0.\0,"[d(4) * 2];
+			tile->fgColor = fg;
+			tile->bgColor = bg;
+		}
+	}
+
+	//Gen bottom tiles. (Twice as wide as top, since the top will mesh with the side.)
+	for (int x : iota(0, height * 2)) {
+		for (int y : iota(0, height)) {
+			Tile* tile{ newOwnedTile() };
+			bottom[x][y] = tile;
+
+			tile->roomId = 10;
+			tile->glyph = &" \0 \0.\0,"[d(4) * 2];
 			tile->fgColor = fg;
 			tile->bgColor = bg;
 		}
 	}
 	
 	//Link top tiles horizontally.
-	for (int x : iota(0, height-1)) {
-		for (int y : iota(0, height)) {
+	for (size_t x : iota(0, height-1)) {
+		for (size_t y : iota(0, height)) {
 			top[x][y]->link(top[x+1][y], 1);
 		}
 	}
 	
 	//Link top tiles vertically.
-	for (int x : iota(0, height)) {
-		for (int y : iota(0, height-1)) {
+	for (size_t x : iota(0, height)) {
+		for (size_t y : iota(0, height-1)) {
 			top[x][y]->link(top[x][y+1], 2);
 		}
 	}
-	
-	//Gen bottom tiles. (Twice as wide as top, since the top will mesh with the side.)
-	for (int x : iota(0, height*2)) {
-		for (int y : iota(0, height)) {
-			Tile* tile{ newOwnedTile() };
-			bottom[x][y] = tile;
-			
-			tile->roomId = 10;
-			tile->glyph = (x + y) % 2 ? "3" : "4";
-			tile->fgColor = fg;
-			tile->bgColor = bg;
-		}
-	}
-	
+
 	//Link bottom tiles horizontally.
-	for (int x : iota(0, height-1)) {
-		for (int y : iota(0, height)) {
-			bottom[x][y]->link(bottom[x+1][y], 1);
+	for (size_t x : iota(0, height*2 - 1)) {
+		for (size_t y : iota(0, height)) {
+			bottom[x][y]->link(bottom[x + 1][y], 1);
 		}
 	}
-	
+
 	//Link bottom tiles vertically.
-	for (int x : iota(0, height)) {
-		for (int y : iota(0, height-1)) {
-			bottom[x][y]->link(bottom[x][y+1], 2);
+	for (size_t x : iota(0, height*2)) {
+		for (size_t y : iota(0, height - 1)) {
+			bottom[x][y]->link(bottom[x][y + 1], 2);
 		}
 	}
 	
 	//Link first half of the top of bottom tiles with the bottom of top tiles.
-	for (int i : iota(0, height)) {
-		top[i][height-1]->link(bottom[i][0], 1);
+	for (size_t i : iota(0, height)) {
+		top[i][height_-1]->link(bottom[i][0], 2);
 	}
 	
 	//Link second half of the top of bottom tiles with the right side of top tiles.
-	for (int i : iota(0, height)) {
-		top[height-1][i]->link(bottom[height+i][0], 2, 3);
+	for (size_t i : iota(0, height)) {
+		top[height_-1][i]->link(bottom[height_*2-1-i][0], 1, 0);
 	}
 
 	auto doors = possibleDoors;
 	std::vector<RoomConnectionTile> connections{}; //Offset slightly CCW since room is always an even number of tiles wide.
-	if (doors & 0b001) connections.emplace_back(top[height][0], 0);
-	if (doors & 0b010) connections.emplace_back(bottom[0][0], 1);
-	if (doors & 0b100) connections.emplace_back(bottom[height+1][height-1], 2);
+	if (doors & 0b001) connections.emplace_back(top[height_-1][0], 0);
+	if (doors & 0b010) connections.emplace_back(bottom[0][0], 3);
+	if (doors & 0b100) connections.emplace_back(bottom[height_+1][height_-1], 2);
 
-	return Room{ top[height-1][height-1], connections };
+	return Room{ top[height_-1][height_-1], connections };
 }
 
 Plane::Room Plane::genHallway(
@@ -322,14 +326,14 @@ Plane::Room Plane::genHallway(
 
 	//genHallwayStyle
 	constexpr int CURVE_TYPES { 7 };
-	const int_fast8_t zigZagRotation { d(2) ? -1 : 1 };
-	const uint_fast8_t zigZagType { d(2) };
-	const uint_fast8_t curveIndex { d(CURVE_TYPES) };
-	static const std::array<std::function<int8_t(int, int)>, 5> curvature{
-		[](int tileNum, int totalTiles) { //straight
+	const int zigZagRotation { d(2) ? -1 : 1 };
+	const int zigZagType { d(2) };
+	const int curveIndex { d(CURVE_TYPES) };
+	static const std::array<std::function<int8_t(size_t, size_t)>, 5> curvature{
+		[](size_t, size_t) { //straight
 			return 1;
 		},
-		[&zigZagRotation, &zigZagType](int tileNum, int totalTiles) { //zig-zag, must capture closures by reference or they never change across invocations.
+		[&zigZagRotation, &zigZagType](size_t tileNum, size_t totalTiles) { //zig-zag, must capture closures by reference or they never change across invocations.
 			const std::array<size_t, 2> patSize {2,3};
 			const std::array<std::array<int, 3>, 2> pattern {{
 				{0,1},
@@ -345,7 +349,7 @@ Plane::Room Plane::genHallway(
 				<< "\n";
 			return 1 + (currAbsoluteDirection - nextAbsoluteDirection) * zigZagRotation;
 		},
-		[&curveIndex](int tileNum, int totalTiles) { //spiralCW
+		[&curveIndex](size_t tileNum, size_t) { //spiralCW
 			return std::array<std::array<int8_t,6>, CURVE_TYPES>{
 				std::array<int8_t, 6>{1, 2, 1, 2, 1, 2}, //small spiral
 				std::array<int8_t, 6>{1, 1, 2, 1, 1, 2}, //med spiral
@@ -356,7 +360,7 @@ Plane::Room Plane::genHallway(
 				std::array<int8_t, 6>{1, 2, 2, 1, 1, 1}, //staircase
 			}[curveIndex][tileNum % 6];
 		},
-		[&curveIndex](int tileNum, int totalTiles) { //spiralCCW
+		[&curveIndex](size_t tileNum, size_t) { //spiralCCW
 			return std::array<std::array<int8_t,6>, CURVE_TYPES>{
 				std::array<int8_t, 6>{1, 0, 1, 0, 1, 0}, //small spiral
 				std::array<int8_t, 6>{1, 1, 0, 1, 1, 0}, //med spiral
@@ -367,7 +371,7 @@ Plane::Room Plane::genHallway(
 				std::array<int8_t, 6>{1, 0, 0, 1, 1, 1}, //staircase
 			}[curveIndex][tileNum % 6];
 		},
-		[this](int tileNum, int totalTiles) { //irregular
+		[this](size_t, size_t) { //irregular
 			return d(2);
 		}
 	};
@@ -438,23 +442,26 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 
 	//First, generate a number of rooms.
 	for ([[maybe_unused]] auto _ : iota(0, numRooms)) {
-		switch (d(1)) {
-			break; case 0:
-				rooms.emplace_back(genSquareRoom(
-					d(2, 5) + d(2, 5), d(2, 5) + d(2, 5),
-					!d(4), false,
-					Color{ d(30.,115.), d(58.,  70.), d(35., 50.) },
-					Color{ d(30.,115.), d(70., 100.), d(0.,  6.) }
-				));
-			break; case 1:
-				rooms.emplace_back(genConicalRoom(
-					d(2, 5) + d(2, 5),
-					Color{ d(30.,115.), d(58.,  70.), d(35., 50.) },
-					Color{ d(30.,115.), d(70., 100.), d(0.,  6.) },
-					0b111
-				));
-			break; default:
-				assert(("Logic error.", false));
+		switch (d(3)) {
+		case 0:
+		case 1:
+			rooms.emplace_back(genSquareRoom(
+				d(2, 5) + d(2, 5), d(2, 5) + d(2, 5),
+				!d(4), false,
+				Color{ d(30.,115.), d(58.,  70.), d(35., 50.) },
+				Color{ d(30.,115.), d(70., 100.), d(0.,  6.) }
+			));
+			break;
+		case 2:
+			rooms.emplace_back(genConicalRoom(
+				d(2, 5) + d(2, 5),
+				Color{ d(30.,115.), d(58.,  70.), d(45., 60.) },
+				Color{ d(30.,115.), d(70., 100.), d(1.,  7.) },
+				0b111
+			));
+		break;
+		default:
+			assert(("Logic error, invalid room type.", false));
 		}
 
 		//Randomise each room's connections.
@@ -474,7 +481,7 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	assert(allRoomConnectionsAreFree(rooms));
 	
 	//Third, link up a few more rooms so it's not just a linear labyrinth. (We have consumed over half our linkage opportunities at this point.)
-	const int extraConnections = rooms.size()/2;
+	const int extraConnections = static_cast<int>(rooms.size()/2);
 	for (int connectionNumber : std::views::iota(0, extraConnections)) {
 		//Replace the following with https://github.com/liamwhite/format-preserving/blob/7da768a732b8bc79d24a5d195a61040271014321/src/main.rs#L3-L58 at some point, it does what we want much better and without the O(n) memory cost.
 		//Constexpr-size only. std::shuffle_order_engine<std::linear_congruential_engine<uint_fast8_t, 1, 1, 10>, 10> order { std::uniform_int_distribution<uint_fast8_t>{ 0, 10-1 }(rng) };
@@ -483,6 +490,7 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 		for (int i : iota(0,2)) {
 			for ([[maybe_unused]] auto attempt : iota(0,10)) {
 				Room* room { &rooms.at(d(static_cast<int>(rooms.size()))) };
+				assert(room); //Silence 'could be null' warning.
 				
 				if (connect[0] == room && room->connections.size() < 2) {
 					//Reject the second room if it's the same as the first room and doesn't have enough connections to connect to itself.

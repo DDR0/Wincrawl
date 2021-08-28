@@ -135,7 +135,7 @@ class Plane {
 		const int height,
 		const Color fg = Color{ 0,0,100 }, //These can't be const, VS says no.
 		const Color bg = Color{ 0,0,0 },
-		const int possibleDoors = 0b111 //Bitfield, sides 1/2/3.
+		const uint_least8_t possibleDoors = 0b111 //Bitfield, sides 1/2/3.
 	);
 
 	enum class genHallwayStyle { straight, zigZag, spiralCW, spiralCCW, irregular, COUNT };
