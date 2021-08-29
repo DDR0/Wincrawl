@@ -203,16 +203,41 @@ Plane::Room Plane::genSquareRoom(
 			room[x][y]->link(room[x][(y + 1) % roomY], 2);
 		}
 	}
-
+	
 	auto doors = possibleDoors;
 	std::vector<RoomConnectionTile> connections{};
-	if (!wrapX) {
-		if (doors & 0b0100) connections.emplace_back(room[roomX - 1][roomY / 2], 1);
-		if (doors & 0b0001) connections.emplace_back(room[0][roomY / 2], 3);
+	if(wrapX && wrapY) { //No walls, no doors.
 	}
-	if (!wrapY) {
-		if (doors & 0b1000) connections.emplace_back(room[roomX / 2][0], 0);
-		if (doors & 0b0010) connections.emplace_back(room[roomX / 2][roomY - 1], 2);
+	else if (!wrapX && !wrapY) { //Square room, put one door in each wall.
+		if (doors & 0b0001) connections.emplace_back(room[roomX / 2][0        ], 0);
+		if (doors & 0b0010) connections.emplace_back(room[roomX - 1][roomY / 2], 1);
+		if (doors & 0b0100) connections.emplace_back(room[roomX / 2][roomY - 1], 2);
+		if (doors & 0b1000) connections.emplace_back(room[0        ][roomY / 2], 3);
+	}
+	else if (!wrapX) {
+		if (roomY < 3) {
+			if (doors & 0b0001) connections.emplace_back(room[0          ][roomY / 2  ], 3);
+			if (doors & 0b0100) connections.emplace_back(room[roomX - 1  ][roomY / 2  ], 1);
+		} else {
+			if (doors & 0b0001) connections.emplace_back(room[0          ][roomY / 3  ], 3);
+			if (doors & 0b0010) connections.emplace_back(room[0          ][roomY / 1.5], 3);
+			if (doors & 0b0100) connections.emplace_back(room[roomX - 1  ][roomY / 3  ], 1);
+			if (doors & 0b1000) connections.emplace_back(room[roomX - 1  ][roomY / 1.5], 1);
+		}
+	}
+	else if (!wrapY) {
+		if (roomX < 3) {
+			if (doors & 0b0010) connections.emplace_back(room[roomX / 2  ][roomY - 1  ], 2);
+			if (doors & 0b1000) connections.emplace_back(room[roomX / 2  ][0          ], 0);
+		} else {
+			if (doors & 0b0001) connections.emplace_back(room[roomX / 3  ][roomY - 1  ], 2);
+			if (doors & 0b0010) connections.emplace_back(room[roomX / 1.5][roomY - 1  ], 2);
+			if (doors & 0b0100) connections.emplace_back(room[roomX / 3  ][0          ], 0);
+			if (doors & 0b1000) connections.emplace_back(room[roomX / 1.5][0          ], 0);
+		}
+	}
+	else {
+		assert(!"Logic error.");
 	}
 
 	return Room{ room[roomX / 2][roomY / 2], connections };
@@ -481,7 +506,7 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 	assert(allRoomConnectionsAreFree(rooms));
 	
 	//Third, link up a few more rooms so it's not just a linear labyrinth. (We have consumed over half our linkage opportunities at this point.)
-	const int extraConnections = static_cast<int>(rooms.size()/2);
+	const int extraConnections = static_cast<int>(rooms.size()/4);
 	for (int connectionNumber : std::views::iota(0, extraConnections)) {
 		//Replace the following with https://github.com/liamwhite/format-preserving/blob/7da768a732b8bc79d24a5d195a61040271014321/src/main.rs#L3-L58 at some point, it does what we want much better and without the O(n) memory cost.
 		//Constexpr-size only. std::shuffle_order_engine<std::linear_congruential_engine<uint_fast8_t, 1, 1, 10>, 10> order { std::uniform_int_distribution<uint_fast8_t>{ 0, 10-1 }(rng) };
