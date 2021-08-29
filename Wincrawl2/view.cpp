@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include <sstream>
+#include <limits>
 
 #include "seq.hpp"
 #include "color.hpp"
@@ -139,36 +140,79 @@ void View::render(std::ostream& target) {
 }
 
 //Borrowed and modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
-//TODO: Shoot more rays, presumably using the floating-point version.
-void View::raytrace(RayWalker&, int x0, int y0, int x1, int y1)
+//TODO: Fix the off-by-one error in a better way than [8VfkkdY3].
+void View::raytrace(RayWalker&, double x0, double y0, double x1, double y1)
 {
-	int dx{ abs(x1 - x0) };
-	int dy{ abs(y1 - y0) };
-	int x{ x0 };
-	int y{ y0 };
-	int x_inc{ (x1 > x0) ? 1 : -1 };
-	int y_inc{ (y1 > y0) ? 1 : -1 };
-	int error = dx - dy;
-	dx *= 2;
-	dy *= 2;
+	double dx = fabs(x1 - x0);
+	double dy = fabs(y1 - y0);
 
+	int x = int(floor(x0));
+	int y = int(floor(y0));
+
+	int n = 1;
+	int x_inc, y_inc;
+	double error;
+	
 	rayWalker.reset(loc, rot, x, y);
 
-	for (int n = (dx + dy) / 2; n > 0; --n) {
+	if (dx == 0) {
+		x_inc = 0;
+		error = std::numeric_limits<double>::infinity();
+	}
+	else if (x1 > x0) {
+		x_inc = 1;
+		n += int(floor(x1)) - x;
+		error = (floor(x0) + 1 - x0) * dy;
+	}
+	else {
+		x_inc = -1;
+		n += x - int(floor(x1));
+		error = (x0 - floor(x0)) * dy;
+	}
+
+	if (dy == 0) {
+		y_inc = 0;
+		error -= std::numeric_limits<double>::infinity();
+	}
+	else if (y1 > y0) {
+		y_inc = 1;
+		n += int(floor(y1)) - y;
+		error -= (floor(y0) + 1 - y0) * dx;
+	}
+	else {
+		y_inc = -1;
+		n += y - int(floor(y1));
+		error -= (y0 - floor(y0)) * dx;
+	}
+
+	for (; n > 0; --n) {
+		std::cerr << "txy: " << x1 << "/" << y1 << ", axy: " << x << "/" << y << ".\n";
+		
+		if (!rayWalker.moveTo(x, y)) {
+			break; //If the rayWalker has moved to an invalid tile, stop tracing.
+		};
+		
 		if (error > 0) {
-			x += x_inc;
-			error -= dy;
+			y += y_inc;
+			error -= dx;
 		}
 		else {
-			y += y_inc;
-			error += dx;
+			x += x_inc;
+			error += dy;
 		}
-
-		if (!rayWalker.moveTo(x, y)) {
-			break; //If the rayWalker has moved to an invalid location, stop tracing.
-		};
+		
+		//[8VfkkdY3] This algorithm *sometimes* goes one tile too far. I don't know why, but fix it
+		//with this hack of a check.
+		if ((x0 < x1 && x > x1) || (x0 > x1 && x < x1)) {
+			x = x1;
+		}
+		
+		if ((y0 < y1 && y > y1) || (y0 > y1 && y < y1)) {
+			y = y1;
+		}
 	}
 }
+//*/
 	
 void View::moveCamera(int direction) {
 	auto link {loc->getNextTile((direction + rot + 4) % 4) };

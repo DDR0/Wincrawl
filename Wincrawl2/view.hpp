@@ -48,7 +48,7 @@ public:
 
 	//Borrowed and modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
 	//TODO: Shoot more rays, presumably using the floating-point version.
-	void raytrace(RayWalker&, int x0, int y0, int x1, int y1);
+	void raytrace(RayWalker&, double x0, double y0, double x1, double y1);
 	
 	void moveCamera(int direction);
 	
