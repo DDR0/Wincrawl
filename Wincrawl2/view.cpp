@@ -26,10 +26,10 @@ bool View::RayWalker::moveTo(int x, int y) { //Must be within the bounds of fiel
 
 	//std::cout << "moved to " << x << "×" << y << " (" << currentDeltaX << "×" << currentDeltaY << ")\n";
 	int directionIndex;
-	if (currentDeltaY == +1) directionIndex = 0; else
-	if (currentDeltaX == +1) directionIndex = 1; else
-	if (currentDeltaY == -1) directionIndex = 2; else
-	if (currentDeltaX == -1) directionIndex = 3; else {
+	if (currentDeltaY == +1) { directionIndex = 0; } else
+	if (currentDeltaX == +1) { directionIndex = 1; } else
+	if (currentDeltaY == -1) { directionIndex = 2; } else
+	if (currentDeltaX == -1) { directionIndex = 3; } else {
 		return true; //No motion, stay where we are.
 	}
 
@@ -142,80 +142,25 @@ void View::render(std::ostream& target) {
 	target << buffer.str();
 }
 
-//Borrowed and modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
-//TODO: Fix the off-by-one error in a better way than [8VfkkdY3].
-void View::raytrace(RayWalker&, double x0, double y0, double x1, double y1)
-{
-	double dx = fabs(x1 - x0);
-	double dy = fabs(y1 - y0);
-
-	int x = int(floor(x0));
-	int y = int(floor(y0));
-
-	int n = 1;
-	int x_inc, y_inc;
-	double error;
+void View::raytrace(RayWalker& rayWalker, double sx, double sy, double dx, double dy) {
+	const int steps = std::max(abs(sx-dx), abs(sy-dy));
+	rayWalker.reset(loc, rot, sx, sy);
 	
-	rayWalker.reset(loc, rot, x, y);
-
-	if (dx == 0) {
-		x_inc = 0;
-		error = std::numeric_limits<double>::infinity();
-	}
-	else if (x1 > x0) {
-		x_inc = 1;
-		n += int(floor(x1)) - x;
-		error = (floor(x0) + 1 - x0) * dy;
-	}
-	else {
-		x_inc = -1;
-		n += x - int(floor(x1));
-		error = (x0 - floor(x0)) * dy;
-	}
-
-	if (dy == 0) {
-		y_inc = 0;
-		error -= std::numeric_limits<double>::infinity();
-	}
-	else if (y1 > y0) {
-		y_inc = 1;
-		n += int(floor(y1)) - y;
-		error -= (floor(y0) + 1 - y0) * dx;
-	}
-	else {
-		y_inc = -1;
-		n += y - int(floor(y1));
-		error -= (y0 - floor(y0)) * dx;
-	}
-
-	for (; n > 0; --n) {
-		//std::cerr << "txy: " << x1 << "/" << y1 << ", axy: " << x << "/" << y << ".\n";
+	//Change step to 0 to trace including the starting tile.
+	//Change the conditional to < to avoid covering the destination tile.
+	
+	int lastY{ sy }; //Move in a zig-zag pattern, so x and y do not change simultaneously. (We don't have diagonal links in our tiling system.)
+	for (int step{ 1 }; step <= steps; step++) {
+		const int x{ round(sx + (dx-sx) * step/steps) };
+		const int y{ round(sy + (dy-sy) * step/steps) };
 		
-		if (!rayWalker.moveTo(x, y)) {
-			break; //If the rayWalker has moved to an invalid tile, stop tracing.
-		};
+		//Advance the raywalker to the tile. Stop couldn't move there.
+		if (!rayWalker.moveTo(x, lastY)) break;
+		if (!rayWalker.moveTo(x, y)) break;
 		
-		if (error > 0) {
-			y += y_inc;
-			error -= dx;
-		}
-		else {
-			x += x_inc;
-			error += dy;
-		}
-		
-		//[8VfkkdY3] This algorithm *sometimes* goes one tile too far. I don't know why, but fix it
-		//with this hack of a check.
-		if ((x0 < x1 && x > x1) || (x0 > x1 && x < x1)) {
-			x = x1;
-		}
-		
-		if ((y0 < y1 && y > y1) || (y0 > y1 && y < y1)) {
-			y = y1;
-		}
+		lastY = y;
 	}
 }
-//*/
 	
 void View::moveCamera(int direction) {
 	auto link {loc->getNextTile((direction + rot + 4) % 4) };

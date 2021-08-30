@@ -56,7 +56,6 @@ int main() {
 	View view{ 23, 23, plane0.getStartingTile() };
 	view.render(cout);
 	
-	
 	auto aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
 	cout << aColor << "\n";
 	auto bColor = Color(305, 91, 56);
