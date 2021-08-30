@@ -93,17 +93,20 @@ void View::render(std::ostream& target) {
 			grid[x][y] = &hiddenTile;
 		}
 	}
-
-	for (int x = 0; x < viewSize[0]; x += viewSize[0] - 1) {
-		for (int y = 0; y < viewSize[1]; y++) {
-			this->raytrace(rayWalker, viewloc[0], viewloc[1], x, y);
+	
+	for (auto offset : std::vector<double>{0.25, 0.75, 0.5, 0}) {
+		for (double x = 0; x < viewSize[0]; x += viewSize[0] - 1) {
+			for (double y = 0; y < viewSize[1]-1; y++) {
+				this->raytrace(rayWalker, viewloc[0], viewloc[1], x, y + offset);
+			}
+		}
+		for (double x = 0; x < viewSize[0]-1; x++) {
+			for (double y = 0; y < viewSize[1]; y += viewSize[1] - 1) {
+				this->raytrace(rayWalker, viewloc[0], viewloc[1], x + offset, y);
+			}
 		}
 	}
-	for (int x = 0; x < viewSize[0]; x++) {
-		for (int y = 0; y < viewSize[1]; y += viewSize[1] - 1) {
-			this->raytrace(rayWalker, viewloc[0], viewloc[1], x, y);
-		}
-	}
+	this->raytrace(rayWalker, viewloc[0], viewloc[1], viewSize[0], viewSize[1]);
 	
 	//We don't ever trace the center tile, just those around it.
 	grid[viewloc[0]][viewloc[1]] = loc;
@@ -186,7 +189,7 @@ void View::raytrace(RayWalker&, double x0, double y0, double x1, double y1)
 	}
 
 	for (; n > 0; --n) {
-		std::cerr << "txy: " << x1 << "/" << y1 << ", axy: " << x << "/" << y << ".\n";
+		//std::cerr << "txy: " << x1 << "/" << y1 << ", axy: " << x << "/" << y << ".\n";
 		
 		if (!rayWalker.moveTo(x, y)) {
 			break; //If the rayWalker has moved to an invalid tile, stop tracing.
