@@ -106,6 +106,12 @@ void View::render(std::ostream& target) {
 			}
 		}
 	}
+	View::RaytraceParams test {
+		.rayWalker{rayWalker},
+		.dx{5}, .dy{6},
+		.onAllTiles{[](auto t){ std::cout << t; }},
+	};
+	std::cerr << "test " << test;
 	this->raytrace(rayWalker, viewloc[0], viewloc[1], viewSize[0], viewSize[1]);
 	
 	//We don't ever trace the center tile, just those around it.
@@ -221,4 +227,33 @@ void View::turn(int delta) {
 	
 	std::cout << seq::clear;
 	render(std::cout);
+}
+
+
+auto operator<<(std::ostream& os, View::RaytraceParams const& params) -> std::ostream& {
+	os << "RaytraceParams: "
+		<< params.sx << "×" << params.sy << " → "
+		<< params.dx << "×" << params.dy << "; ";
+	
+	bool cb{ false };
+	if(params.onAllTiles) {
+		os << "onAllTiles=" << params.onAllTiles.target_type().name();
+		cb |= true;
+	}
+	if(params.onLastTile) {
+		if(cb) os << ", ";
+		os << "onLastTile=" << params.onLastTile.target_type().name();
+		cb |= true;
+	}
+	if(params.onTargetTile) {
+		if(cb) os << ", ";
+		os << "onTargetTile=" << params.onTargetTile.target_type().name();
+		cb |= true;
+	}
+	if(!cb) {
+		os << "no callbacks.";
+	}
+	
+	os << "\n";
+	return os;
 }

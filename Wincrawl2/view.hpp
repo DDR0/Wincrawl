@@ -1,7 +1,9 @@
 #pragma once
 
-#include "things.hpp"
+#include <functional>
+
 #include "places.hpp"
+#include "things.hpp"
 
 class View {
 	//A view is a regular grid of tiles, as seen from a specific tile.
@@ -48,6 +50,20 @@ public:
 
 	//Borrowed and modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
 	//TODO: Shoot more rays, presumably using the floating-point version.
+	struct RaytraceParams {
+		RayWalker rayWalker;
+		
+		//Source xy and dest xy.
+		double sx{0}, sy{0}, dx, dy;
+		
+		//Callbacks, fired:
+		const std::function<void(Tile*)> onAllTiles { nullptr }; //With each tile the ray passes through.
+		const std::function<void(Tile*)> onLastTile { nullptr }; //With the final tile the ray passes through. May not be the target tile, might have hit something.
+		const std::function<void(Tile*)> onTargetTile { nullptr }; //With the target tile the ray was directed at.
+		
+		//Debug.
+		friend auto operator<<(std::ostream& os, RaytraceParams const& params) -> std::ostream&;
+	};
 	void raytrace(RayWalker& rayWalker, double sx, double sy, double dx, double dy);
 	
 	void moveCamera(int direction);
