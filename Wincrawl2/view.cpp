@@ -3,11 +3,11 @@
 #include <sstream>
 #include <limits>
 
-#include "seq.hpp"
-#include "color.hpp"
-
 #include "view.hpp"
-#include "things.hpp"
+#include "color.hpp"
+#include "raytracer.hpp"
+#include "seq.hpp"
+
 
 View::RayWalker::RayWalker(std::vector<std::vector<Tile*>>* field_) : field(field_) {}
 
