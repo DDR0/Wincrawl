@@ -26,21 +26,30 @@ class Raytracer {
 	
 	bool moveTo(int x, int y);
 	
+	using callback = std::function<void(Tile*, int rayX, int rayY)>;
+	struct RaytracerCallbacks { //Callbacks, fired:…
+		const callback onEachTile { [](...){} }; //…on each tile the ray passes through.
+		const callback onLastTile { [](...){} }; //…on the final tile the ray passes through. May not be the target tile, might have hit something.
+		const callback onTargetTile { [](...){} }; //…on the target tile the ray was directed at.
+	};
+	
 public:
-	Tile* startingTile;
+	Tile* startingTile{ nullptr };
 	int startingDir{ 0 };
 	
-	//Callbacks, fired…:
-	const std::function<void(Tile*)> onAllTiles { [](auto _){} }; //…on each tile the ray passes through.
-	const std::function<void(Tile*)> onLastTile { [](auto _){} }; //…on the final tile the ray passes through. May not be the target tile, might have hit something.
-	const std::function<void(Tile*)> onTargetTile { [](auto _){} }; //…on the target tile the ray was directed at.
+	const callback onEachTile;
+	const callback onLastTile;
+	const callback onTargetTile;
 	
-	inline Raytracer(Tile* startingTile_, int startingDir_):
-		startingTile(startingTile_), startingDir(startingDir_) {};
+	Raytracer(const Raytracer::RaytracerCallbacks&);
 	
-	void raytrace(double sx, double sy, double dx, double dy);
+	inline void setOriginTile(Tile* tile, int dir) {
+		startingTile = tile; startingDir = dir;
+	};
 	
+	void trace(double sx, double sy, double dx, double dy);
 	
 	//Debug.
-	friend auto operator<<(std::ostream& os, Raytracer const& params) -> std::ostream&;
+	friend auto operator<<(std::ostream& os, const Raytracer& params) -> std::ostream&;
+	friend auto operator<<(std::ostream& os, const Raytracer::RaytracerCallbacks& params) -> std::ostream&;
 };

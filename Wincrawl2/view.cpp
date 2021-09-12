@@ -5,64 +5,9 @@
 
 #include "view.hpp"
 #include "color.hpp"
-#include "raytracer.hpp"
 #include "seq.hpp"
 
 
-View::RayWalker::RayWalker(std::vector<std::vector<Tile*>>* field_) : field(field_) {}
-
-void View::RayWalker::reset(Tile* startingTile, int rot, int x, int y) {
-	loc = startingTile;
-	dir = rot;
-
-	lastX = x;
-	lastY = y;
-	lastDirectionIndex = 0;
-}
-
-bool View::RayWalker::moveTo(int x, int y) { //Must be within the bounds of field.
-	const int currentDeltaX = x - lastX;
-	const int currentDeltaY = y - lastY;
-
-	//std::cout << "moved to " << x << "×" << y << " (" << currentDeltaX << "×" << currentDeltaY << ")\n";
-	int directionIndex;
-	if (currentDeltaY == +1) { directionIndex = 0; } else
-	if (currentDeltaX == +1) { directionIndex = 1; } else
-	if (currentDeltaY == -1) { directionIndex = 2; } else
-	if (currentDeltaX == -1) { directionIndex = 3; } else {
-		return true; //No motion, stay where we are.
-	}
-
-	if (not(lastX || lastY)) {
-		//Starting off, so relative movement to our tile.
-		auto movement = loc->getNextTile(directionIndex);
-		loc = movement->tile();
-		lastDirectionIndex = dir = movement->dir();
-		//std::cout << "moved! " << directionIndex << "\n";
-	}
-	else {
-		//Enter the room in the relative direction from us.
-		//std::cout << "moved: " << directionIndex << " (from " << lastDirectionIndex << " is " << (directionIndex-lastDirectionIndex) << ")\n";
-		auto movement = loc->getNextTile(dir, directionIndex - lastDirectionIndex);
-		loc = movement->tile();
-		dir = movement->dir();
-		lastDirectionIndex = directionIndex;
-	}
-
-	lastX = x;
-	lastY = y;
-
-	if (loc) {
-		//std::cout << "setting " << x << "×" << y << " to #" << loc->getIDStr() << " (" << reinterpret_cast<const char*>(loc->glyph) << ")\n";
-		(*field)[x][y] = loc;
-		return !loc->isOpaque; //Continue tracing only if whatever we're looking at isn't solid.
-	}
-	else {
-		//std::cout << "setting " << x << "×" << y << " to #" << emptyTile.getIDStr() << " (" << reinterpret_cast<const char*>(emptyTile.glyph) << ")\n";
-		(*field)[x][y] = &emptyTile;
-		return false;
-	}
-}
 View::View(uint8_t width, uint8_t height, Tile* pointOfView)
 	: loc(pointOfView)
 {
@@ -80,10 +25,15 @@ View::View(uint8_t width, uint8_t height, Tile* pointOfView)
 	hiddenTile.glyph = "░";
 	emptyTile.roomId = 2;
 	emptyTile.glyph = "▓";
+	
+	//raytracer.onEachTile = [&](auto loc, auto x, auto y){
+	//	grid[x][y] = loc ? loc : &emptyTile;
+	//};
 }
 
 void View::render(std::ostream& target) {
 	assert(loc); //If no location is defined, fail.
+	raytracer.setOriginTile(loc, rot);
 
 	int viewloc[2] = { viewSize[0] / 2, viewSize[1] / 2 };
 
@@ -94,25 +44,22 @@ void View::render(std::ostream& target) {
 		}
 	}
 	
+	//TODO: Rework this so it traces the lines around true (integer) lines first, then the final true lines.
 	for (auto offset : std::vector<double>{0.25, 0.75, 0.5, 0}) {
 		for (double x = 0; x < viewSize[0]; x += viewSize[0] - 1) {
 			for (double y = 0; y < viewSize[1]-1; y++) {
-				this->raytrace(rayWalker, viewloc[0], viewloc[1], x, y + offset);
+				raytracer.trace(viewloc[0], viewloc[1], x, y + offset);
 			}
 		}
 		for (double x = 0; x < viewSize[0]-1; x++) {
 			for (double y = 0; y < viewSize[1]; y += viewSize[1] - 1) {
-				this->raytrace(rayWalker, viewloc[0], viewloc[1], x + offset, y);
+				raytracer.trace(viewloc[0], viewloc[1], x + offset, y);
 			}
 		}
 	}
-	View::RaytraceParams test {
-		.rayWalker{rayWalker},
-		.dx{5}, .dy{6},
-		.onAllTiles{[](auto t){ std::cout << t; }},
-	};
-	std::cerr << "test " << test;
-	this->raytrace(rayWalker, viewloc[0], viewloc[1], viewSize[0], viewSize[1]);
+	
+	//Trace the final diagonal line to the 1-2 corner, which doesn't get covered otherwise.
+	raytracer.trace(viewloc[0], viewloc[1], viewSize[0], viewSize[1]);
 	
 	//We don't ever trace the center tile, just those around it.
 	grid[viewloc[0]][viewloc[1]] = loc;
@@ -146,26 +93,6 @@ void View::render(std::ostream& target) {
 	}
 
 	target << buffer.str();
-}
-
-void View::raytrace(RayWalker& rayWalker, double sx, double sy, double dx, double dy) {
-	const int steps = std::max(abs(sx-dx), abs(sy-dy));
-	rayWalker.reset(loc, rot, sx, sy);
-	
-	//Change step to 0 to trace including the starting tile.
-	//Change the conditional to < to avoid covering the destination tile.
-	
-	int lastY{ sy }; //Move in a zig-zag pattern, so x and y do not change simultaneously. (We don't have diagonal links in our tiling system.)
-	for (int step{ 1 }; step <= steps; step++) {
-		const int x{ round(sx + (dx-sx) * step/steps) };
-		const int y{ round(sy + (dy-sy) * step/steps) };
-		
-		//Advance the raywalker to the tile. Stop couldn't move there.
-		if (!rayWalker.moveTo(x, lastY)) break;
-		if (!rayWalker.moveTo(x, y)) break;
-		
-		lastY = y;
-	}
 }
 	
 void View::moveCamera(int direction) {
@@ -227,33 +154,4 @@ void View::turn(int delta) {
 	
 	std::cout << seq::clear;
 	render(std::cout);
-}
-
-
-auto operator<<(std::ostream& os, View::RaytraceParams const& params) -> std::ostream& {
-	os << "RaytraceParams: "
-		<< params.sx << "×" << params.sy << " → "
-		<< params.dx << "×" << params.dy << "; ";
-	
-	bool cb{ false };
-	if(params.onAllTiles) {
-		os << "onAllTiles=" << params.onAllTiles.target_type().name();
-		cb |= true;
-	}
-	if(params.onLastTile) {
-		if(cb) os << ", ";
-		os << "onLastTile=" << params.onLastTile.target_type().name();
-		cb |= true;
-	}
-	if(params.onTargetTile) {
-		if(cb) os << ", ";
-		os << "onTargetTile=" << params.onTargetTile.target_type().name();
-		cb |= true;
-	}
-	if(!cb) {
-		os << "no callbacks.";
-	}
-	
-	os << "\n";
-	return os;
 }
