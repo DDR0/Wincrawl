@@ -178,6 +178,7 @@
     <ClCompile Include="main_loop.cpp" />
     <ClCompile Include="places.cpp" />
     <ClCompile Include="ecs.cpp" />
+    <ClCompile Include="raytracer.cpp" />
     <ClCompile Include="triggers.cpp" />
     <ClCompile Include="vector_tools.cpp" />
     <ClCompile Include="view.cpp" />
@@ -191,6 +192,7 @@
     <ClInclude Include="io.hpp" />
     <ClInclude Include="main_loop.hpp" />
     <ClInclude Include="places.hpp" />
+    <ClInclude Include="raytracer.hpp" />
     <ClInclude Include="seq.hpp" />
     <ClInclude Include="ecs.hpp" />
     <ClInclude Include="triggers.hpp" />

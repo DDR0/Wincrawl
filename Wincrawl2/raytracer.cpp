@@ -106,19 +106,19 @@ auto operator<<(std::ostream& os, Raytracer const& params) -> std::ostream& {
 
 //TODO: Use the algorithm from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html (The implementation there doesn't seem to work, overshoots target.)
 void Raytracer::trace(double sx, double sy, double dx, double dy) {
-	reset(sx, sy);
+	reset(static_cast<int>(sx), static_cast<int>(sy));
 	
 	decltype(loc) oldloc;
-	const int steps = std::max(abs(sx-dx), abs(sy-dy));
-	int lastY{ sy }; //We move in a zig-zag pattern, so x and y do not change simultaneously. (We don't have diagonal links in our tiling system.)
+	const int steps = static_cast<int>(std::max(abs(sx-dx), abs(sy-dy)));
+	int lastY{ static_cast<int>(sy) }; //We move in a zig-zag pattern, so x and y do not change simultaneously. (We don't have diagonal links in our tiling system.)
 	
 	
 	//Change step to 0 to trace including the starting tile.
 	//Change the conditional to < to avoid covering the destination tile.
 	int step{ 1 };
 	for (;step <= steps;) {
-		const int x{ round(sx + (dx-sx) * step/steps) };
-		const int y{ round(sy + (dy-sy) * step/steps) };
+		const int x{ static_cast<int>(round(sx + (dx-sx) * step/steps)) };
+		const int y{ static_cast<int>(round(sy + (dy-sy) * step/steps)) };
 		
 		//Advance the raywalker to the tile. Stop couldn't move there.
 		oldloc = loc;
