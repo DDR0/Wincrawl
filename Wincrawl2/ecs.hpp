@@ -7,16 +7,15 @@
 #include <vector>
 
 #include "color.hpp"
-#include "places.hpp"
 #include "vector_tools.hpp" //Only needed by rem(Component::Base).
 
-class Tile; //Not defined by places.hpp, as places.hpp requires this first.
 class Entity;
 
 namespace Event {
 	//An event is something which happens. Eg., you stab something or get stabbed, you are drawn on screen, etc.
 
-	struct Base {};
+	struct Base {
+	};
 
 	struct Damage: Base {
 		int amount{ 0 };
@@ -35,12 +34,23 @@ namespace Event {
 	};
 	struct DealDamage: Damage {};
 	struct TakeDamage: Damage {};
+	
+	struct GetBaseHP: Base {};
 
-	struct GetRendered : public Base {
+	struct GetRendered: Base {
 		const char* glyph{ nullptr };
-		Color fgColor{ 0xFF0000 };
-		Color bgColor{ 0xFF0000 }; //needs some concept of an alpha channel, so disused for now
+		Color fgColor{ 0xFF0000 }; //Rename these to primaryColor and secondaryColor?
+		Color bgColor{ 0xFF0000 }; //Needs some concept of an alpha channel, so disused for now.
 	};
+	
+	struct BaseEntityEvent: Base {
+		Entity* entity;
+		bool force{ false }; //Event will succeed if a handler exists.
+		bool success{ false };
+	};
+	struct AddSubentity: public BaseEntityEvent {};
+	struct RemoveSubentity: public BaseEntityEvent {};
+	struct MoveTo: public BaseEntityEvent {};
 };
 
 
@@ -64,36 +74,48 @@ namespace Component {
 		};
 
 		//Specializations are needed, otherwise base just gets called.
-		virtual void handleEvent(Event::TakeDamage*) {};
-		virtual void handleEvent(Event::DealDamage*) {};
-		virtual void handleEvent(Event::GetRendered*) {};
+		inline virtual void handleEvent(Event::TakeDamage*) {};
+		inline virtual void handleEvent(Event::DealDamage*) {};
+		inline virtual void handleEvent(Event::GetRendered*) {};
+		inline virtual void handleEvent(Event::AddSubentity*) {};
+		inline virtual void handleEvent(Event::RemoveSubentity*) {};
+		inline virtual void handleEvent(Event::MoveTo*) {};
 	};
 
-	class Health : public Base {
+	class Existance : public Base {
 	public:
-		const char* name() const override { return "Health"; };
+		const char* name() const override { return "Existance"; };
 		
-		int hp{ 10 };
-
-		Health(Entity* e, int startingHP): Base(e), hp(startingHP) {}
-
-		void handleEvent(Event::TakeDamage*) override;
-		void handleEvent(Event::DealDamage*) override;
-	};
-
-	class Render : public Base {
-	public:
-		const char* name() const override { return "Render"; };
-		
+		//Visually exist.
 		const char* glyph{ "￼" };
 		Color fgColor{ 0xFF0000 };
 		uint8_t type{ 0 };
 		uint8_t zorder{ 0 };
+		
+		//Physically exist, hold and be held.
+		Entity* superentity { nullptr };
+		std::set<Entity*> subentities {};
 
-		Render(Entity* e, const char* glyph_, Color color)
-			: Base(e), glyph(glyph_), fgColor(color) {}
+		inline Existance(Entity* e, const char* glyph_, Color color, Entity* superentity_ = nullptr)
+			: Base(e), glyph(glyph_), fgColor(color), superentity(superentity_) {}
 
 		void handleEvent(Event::GetRendered*) override;
+		
+		void handleEvent(Event::AddSubentity*) override;
+		void handleEvent(Event::RemoveSubentity*) override;
+		void handleEvent(Event::MoveTo*) override;
+	};
+
+	class Fragility : public Base {
+	public:
+		const char* name() const override { return "Fragility"; };
+		
+		int hp{ 10 };
+
+		inline Fragility(Entity* e, int startingHP): Base(e), hp(startingHP) {}
+
+		void handleEvent(Event::TakeDamage*) override;
+		void handleEvent(Event::DealDamage*) override; //temp, I think
 	};
 };
 

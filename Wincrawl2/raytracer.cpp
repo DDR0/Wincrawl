@@ -7,7 +7,7 @@
 #include "color.hpp"
 
 #include "raytracer.hpp"
-#include "things.hpp"
+#include "ecs.hpp"
 
 //So what happens here is that there's two lobes to the brain of this
 //raytracer, mainly due to some implementation mismatch around the tiles

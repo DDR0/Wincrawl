@@ -3,7 +3,7 @@
 #include <functional>
 
 #include "places.hpp"
-#include "things.hpp"
+#include "ecs.hpp"
 #include "raytracer.hpp"
 
 class View {
@@ -15,13 +15,11 @@ class View {
 	inline static Tile hiddenTile{};
 	inline static Tile emptyTile{};
 	
-	//This doesn't work. Why?
 	Raytracer raytracer{{
 		.onEachTile = [&](auto loc, auto x, auto y){
 			grid[x][y] = loc ? loc : &emptyTile;
 		}
 	}};
-	//Raytracer raytracer{};
 
 public:
 	Tile* loc;

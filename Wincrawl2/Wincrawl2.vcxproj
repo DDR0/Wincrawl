@@ -177,7 +177,7 @@
     <ClCompile Include="io.cpp" />
     <ClCompile Include="main_loop.cpp" />
     <ClCompile Include="places.cpp" />
-    <ClCompile Include="things.cpp" />
+    <ClCompile Include="ecs.cpp" />
     <ClCompile Include="triggers.cpp" />
     <ClCompile Include="vector_tools.cpp" />
     <ClCompile Include="view.cpp" />
@@ -192,7 +192,7 @@
     <ClInclude Include="main_loop.hpp" />
     <ClInclude Include="places.hpp" />
     <ClInclude Include="seq.hpp" />
-    <ClInclude Include="things.hpp" />
+    <ClInclude Include="ecs.hpp" />
     <ClInclude Include="triggers.hpp" />
     <ClInclude Include="vector_tools.hpp" />
     <ClInclude Include="view.hpp" />

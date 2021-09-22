@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "places.hpp"
-#include "things.hpp"
+#include "ecs.hpp"
 
 class Raytracer {
 	//Since our geometry has no external location or orientation, we must "walk" it to

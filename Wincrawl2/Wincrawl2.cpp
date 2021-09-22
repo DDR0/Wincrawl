@@ -8,8 +8,8 @@
 #include "main_loop.hpp"
 #include "places.hpp"
 #include "seq.hpp"
-#include "things.hpp"
-#include "things.hpp"
+#include "ecs.hpp"
+#include "ecs.hpp"
 #include "triggers.hpp"
 #include "view.hpp"
 
@@ -45,8 +45,8 @@ int main() {
 		using namespace Component;
 		using namespace Event;
 		Entity* avatar{ plane0.summon() };
-		avatar->add<Render>("@", 0xDDA24E);
-		avatar->add<Health>(10);
+		avatar->add<Existance>("@", 0xDDA24E);
+		avatar->add<Fragility>(10);
 		auto attack = TakeDamage(avatar->dispatch(DealDamage{}));
 		std::cerr << "Attack amount: " << attack.amount << "\n";
 		plane0.getStartingTile()->occupants.push_back(avatar);

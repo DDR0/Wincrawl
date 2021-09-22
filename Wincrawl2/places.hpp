@@ -5,9 +5,8 @@
 #include <random>
 
 #include "color.hpp"
-#include "things.hpp"
+#include "ecs.hpp"
 
-class Entity;
 class Tile;
 
 class Link {
@@ -37,7 +36,7 @@ public:
 };
 
 
-class Tile {
+class Tile : public Entity {
 	//A tile is a square place in a plane.
 
 	inline static uint_fast16_t TotalTilesCreated;
@@ -163,6 +162,6 @@ public:
 	auto summon(Args... args)
 		requires std::is_base_of<Entity, T>::value
 	{
-		return entities.emplace_back(new T());
+		return entities.emplace_back(new T(args...));
 	}
 };

@@ -14,6 +14,11 @@
 #include "vector_tools.hpp"
 
 
+struct painter {
+	int x{ 0 };
+};
+
+
 std::string Tile::listLinks(int8_t hightlightIndex) {
 	std::stringstream out;
 	out << "Tile " << this->getIDStr() << ":";
@@ -366,12 +371,12 @@ Plane::Room Plane::genHallway(
 			}};
 			auto currAbsoluteDirection = pattern[zigZagType][static_cast<size_t>((tileNum+0) / 1.0 / (totalTiles+1) * patSize[zigZagType])];
 			auto nextAbsoluteDirection = pattern[zigZagType][static_cast<size_t>((tileNum+1) / 1.0 / (totalTiles+1) * patSize[zigZagType])];
-			std::cerr << "zzdir: tile "
-				<< tileNum << "/" << totalTiles << " "
-				<< 1 + (currAbsoluteDirection - nextAbsoluteDirection) * zigZagRotation
-				<< " from " << (int)currAbsoluteDirection << "-" << (int)nextAbsoluteDirection
-				<< ", rot " << (int)zigZagRotation << ", type " << (int)zigZagType
-				<< "\n";
+			//std::cerr << "zzdir: tile "
+			//	<< tileNum << "/" << totalTiles << " "
+			//	<< 1 + (currAbsoluteDirection - nextAbsoluteDirection) * zigZagRotation
+			//	<< " from " << (int)currAbsoluteDirection << "-" << (int)nextAbsoluteDirection
+			//	<< ", rot " << (int)zigZagRotation << ", type " << (int)zigZagType
+			//	<< "\n";
 			return 1 + (currAbsoluteDirection - nextAbsoluteDirection) * zigZagRotation;
 		},
 		[&curveIndex](size_t tileNum, size_t) { //spiralCW
@@ -479,7 +484,7 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 			break;
 		case 2:
 			rooms.emplace_back(genConicalRoom(
-				d(2, 5) + d(2, 5),
+				d(1, 3) + d(1, 3),
 				Color{ d(30.,115.), d(58.,  70.), d(45., 60.) },
 				Color{ d(30.,115.), d(70., 100.), d(1.,  7.) },
 				0b111

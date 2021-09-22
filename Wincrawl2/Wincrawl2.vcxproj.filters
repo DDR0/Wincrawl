@@ -30,7 +30,7 @@
     <ClCompile Include="places.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="things.cpp">
+    <ClCompile Include="ecs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="color.cpp">
@@ -65,7 +65,7 @@
     <ClInclude Include="seq.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="things.hpp">
+    <ClInclude Include="ecs.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="triggers.hpp">
