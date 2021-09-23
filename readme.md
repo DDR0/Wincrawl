@@ -34,5 +34,6 @@ As you go through the dungeon, most conflict can be solved without the use of vi
 
 ## Notable Works
 
-- https://www.youtube.com/watch?v=8nUMJA_KoSA
+- https://www.youtube.com/watch?v=8nUMJA_KoSA Minecraft House Tour
 - https://assetstore.unity.com/packages/3d/environments/fantasy/fluid-portals-system-non-euclidian-tunnels-163699
+- https://www.twelvetiles.com/lastword (https://store.steampowered.com/app/355530)
