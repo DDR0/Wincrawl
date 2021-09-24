@@ -24,7 +24,7 @@ std::string Tile::listLinks(int8_t hightlightIndex) {
 	out << "Tile " << this->getIDStr() << ":";
 	for (int i = 0; i < 6; i++) {
 		out << " "
-			<< Color(this->links[i].tile() ? 0xF9343E : 0x20943E).fg()
+			<< Color(this->links[i].tile() ? 0xF9343EFF : 0x20943EFF).fg()
 			<< (i == hightlightIndex ? seq::bold : "")
 			<< i << seq::reset
 			<< (i == hightlightIndex ? "̲" : "");

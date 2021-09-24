@@ -45,7 +45,7 @@ int main() {
 		using namespace Component;
 		using namespace Event;
 		Entity* avatar{ plane0.summon() };
-		avatar->add<Existance>("@", 0xDDA24E);
+		avatar->add<Existance>("@", 0xDDA24EFF);
 		avatar->add<Fragility>(10);
 		auto attack = TakeDamage(avatar->dispatch(DealDamage{}));
 		std::cerr << "Attack amount: " << attack.amount << "\n";
@@ -60,7 +60,7 @@ int main() {
 	cout << aColor << "\n";
 	auto bColor = Color(305, 91, 56);
 	cout << bColor << "\n";
-	auto cColor = Color(0x6d83cf);
+	auto cColor = Color(0x6d83cfff);
 	cout << cColor << "\n";
 	
 

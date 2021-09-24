@@ -29,7 +29,7 @@ As you go through the dungeon, most conflict can be solved without the use of vi
 3. Esper
 	- **Talking**: These aggressive esper-snakes in the dungeon are very, very clever - quite over your level, to be frank. Talking with them resembles running a poorly-built raft down a river - you can only hope not to capsize along the way to your conversation's conclusion! You cannot keep secrets from an esper, they know what you know. The strength of your argument determines how quickly you can navigate the flow of conversation, the strength of the esper's how fast and narrow the river is.
 	- **Fighting**: Actually managing to fight an esper is rather hard, because they tend to rearrange reality on you. Either by putting distance between you, or wrapping the tile you're on back on itself to effectively put you between you and it, or simply twisting off the little bubble of reality you're in.
-
+	
 
 
 ## Notable Works

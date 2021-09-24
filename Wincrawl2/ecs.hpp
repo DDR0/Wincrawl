@@ -39,8 +39,8 @@ namespace Event {
 
 	struct GetRendered: Base {
 		const char* glyph{ nullptr };
-		Color fgColor{ 0xFF0000 }; //Rename these to primaryColor and secondaryColor?
-		Color bgColor{ 0xFF0000 }; //Needs some concept of an alpha channel, so disused for now.
+		Color fgColor{ 0xFF0000FF }; //Rename these to primaryColor and secondaryColor?
+		Color bgColor{ 0xFF0000FF }; //Needs some concept of an alpha channel, so disused for now.
 	};
 	
 	struct BaseEntityEvent: Base {
@@ -48,9 +48,9 @@ namespace Event {
 		bool force{ false }; //Event will succeed if a handler exists.
 		bool success{ false };
 	};
-	struct AddSubentity: public BaseEntityEvent {};
-	struct RemoveSubentity: public BaseEntityEvent {};
-	struct MoveTo: public BaseEntityEvent {};
+	struct AddSubentity: BaseEntityEvent {};
+	struct RemoveSubentity: BaseEntityEvent {};
+	struct MoveTo: BaseEntityEvent {};
 };
 
 
@@ -88,7 +88,7 @@ namespace Component {
 		
 		//Visually exist.
 		const char* glyph{ "￼" };
-		Color fgColor{ 0xFF0000 };
+		Color fgColor{ 0xFF0000FF };
 		uint8_t type{ 0 };
 		uint8_t zorder{ 0 };
 		

@@ -7,24 +7,33 @@
 #include "hsluv.hpp"
 
 class Color {
-	uint8_t channels[3]{};
+	uint8_t channels[4]{};
 	
 public:
+	struct RGBA { uint8_t r; uint8_t g; uint8_t b; uint8_t a; };
 	struct RGB { uint8_t r; uint8_t g; uint8_t b; };
+	struct HSLA { double h; double s; double l; double a; };
 	struct HSL { double h; double s; double l; };
 	
 	Color();
 	Color(uint32_t);
 	Color(RGB);
+	Color(RGBA);
 	Color(HSL);
+	Color(HSLA);
 	Color(double h, double s, double l);
+	Color(double h, double s, double l, double a);
 	Color(const Color&);
 
 	void rgb(uint8_t r, uint8_t g, uint8_t b);
 	RGB rgb() const;
+	void rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+	RGBA rgba() const;
 	
 	void hsl(double h, double s, double l);
 	HSL hsl() const;
+	void hsla(double h, double s, double l, double a);
+	HSLA hsla() const;
 
 	Color& operator=(const Color&);
 	Color& operator=(uint32_t rgb);
