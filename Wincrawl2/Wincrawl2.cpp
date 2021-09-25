@@ -19,7 +19,7 @@ int main() {
 	using namespace std;
 
 	if (not setUpConsole()) {
-		cout << "Error: Could not set console to UTF8 mode.\n";
+		cerr << "Error: Could not set console to UTF8 mode.\n";
 		return 255;
 	};
 
@@ -90,7 +90,10 @@ int main() {
 	cout << "Arrow keys to move, alt left/right to turn, q to quit.\n";
 	runMainLoop(triggers);
 	
-	
+	if (not tearDownConsole()) {
+		cerr << "Error: Could not reset console.\n";
+	}
+		
 	cout << "Good-bye.\n";
 	return 0;
 }

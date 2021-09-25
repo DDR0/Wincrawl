@@ -3,6 +3,7 @@
 #include <atomic>
 
 bool setUpConsole();
+bool tearDownConsole();
 
 int getInputChar(void);
 

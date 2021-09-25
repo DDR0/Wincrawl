@@ -3,48 +3,64 @@
 
 #include "io.hpp"
 
+
+//Each OS we support has different ways to configure their terminal.
 #ifdef _MSC_VER
-#include <windows.h>
-#include <conio.h>
 
-bool setUpConsole() {
-	return SetConsoleCP(CP_UTF8) & SetConsoleOutputCP(CP_UTF8);
-}
+	#include <windows.h>
+	#include <conio.h>
 
-int getInputChar() {
-	return _getch();
-};
+	bool setUpConsole() {
+		return SetConsoleCP(CP_UTF8) & SetConsoleOutputCP(CP_UTF8);
+	}
+
+	bool tearDownConsole() {
+		return true;
+	}
+
+	int getInputChar() {
+		return _getch();
+	};
 
 #else
-#include <unistd.h>
-#include <termios.h>
 
-bool setUpConsole() {
-	return true;
-}
+	#include <unistd.h>
+	#include <termios.h>
 
-//From https://stackoverflow.com/a/16361724
-int getInputChar(void) {
-	char buf = 0;
 	struct termios old = { 0 };
-	fflush(stdout);
-	if (tcgetattr(0, &old) < 0)
-		perror("tcsetattr()");
-	old.c_lflag &= ~ICANON;
-	old.c_lflag &= ~ECHO;
-	old.c_cc[VMIN] = 1;
-	old.c_cc[VTIME] = 0;
-	if (tcsetattr(0, TCSANOW, &old) < 0)
-		perror("tcsetattr ICANON");
-	if (read(0, &buf, 1) < 0)
-		perror("read()");
-	old.c_lflag |= ICANON;
-	old.c_lflag |= ECHO;
-	if (tcsetattr(0, TCSADRAIN, &old) < 0)
-		perror("tcsetattr ~ICANON");
-	//printf("%c\n", buf); //echo
-	return buf;
-}
+
+	bool setUpConsole() {
+		errno = 0;
+		if (tcgetattr(0, &old) < 0)
+			perror("tcsetattr()");
+		old.c_lflag &= ~ICANON;
+		old.c_lflag &= ~ECHO;
+		old.c_cc[VMIN] = 1;
+		old.c_cc[VTIME] = 0;
+		if (tcsetattr(0, TCSANOW, &old) < 0)
+			perror("tcsetattr ICANON");
+		return true;
+	}
+
+	bool tearDownConsole() {
+		old.c_lflag |= ICANON;
+		old.c_lflag |= ECHO;
+		if (tcsetattr(0, TCSADRAIN, &old) < 0)
+			perror("tcsetattr ~ICANON");
+		return true;
+	}
+
+	//From https://stackoverflow.com/a/16361724
+	int getInputChar(void) {
+		fflush(stdout);
+		
+		char buf = 0;
+		if (read(0, &buf, 1) < 0)
+			perror("read()");
+		
+		//printf("%c\n", buf); //echo
+		return buf;
+	}
 
 #endif 
 
