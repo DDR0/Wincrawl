@@ -106,7 +106,7 @@ Color::HSLA Color::hsla() const {
 }
 
 Color& Color::operator=(const Color& other) {
-	for (int i = 0; i < 3; i++) //bump to 4 to match alpha too
+	for (int i = 0; i < 4; i++) //bump to 4 to match alpha too
 		channels[i] = other[i];
 	return *this;
 }

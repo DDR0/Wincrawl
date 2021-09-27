@@ -24,6 +24,8 @@ public:
 	Color(double h, double s, double l);
 	Color(double h, double s, double l, double a);
 	Color(const Color&);
+	
+	inline int a() { return channels[3]; };
 
 	void rgb(uint8_t r, uint8_t g, uint8_t b);
 	RGB rgb() const;
@@ -36,7 +38,7 @@ public:
 	HSLA hsla() const;
 
 	Color& operator=(const Color&);
-	Color& operator=(uint32_t rgb);
+	Color& operator=(uint32_t rgba);
 
 	uint8_t operator[](size_t);
 	uint8_t operator[](size_t) const;
