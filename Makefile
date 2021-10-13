@@ -36,7 +36,7 @@ SANITIZE_UNDEFINED=no
 endif
 
 ifeq ($(OPTIMIZE),yes)
-BASE_CXXFLAGS += -O2
+BASE_CXXFLAGS += -O3
 endif
 
 ifneq ($(DEBUG), yes)
