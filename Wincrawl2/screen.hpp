@@ -12,7 +12,7 @@
 
 class Screen {
 protected:
-	struct Size { int x; int y; };
+	struct Size { uint_fast16_t x; uint_fast16_t y; };
 	static inline Size size { 80, 25 };
 	
 	bool dirty{ true }; //Ideally, only used when the terminal has been resized. Set on screen transition so there's a way back from bad states anyway.
