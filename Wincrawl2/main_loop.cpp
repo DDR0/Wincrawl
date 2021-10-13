@@ -32,7 +32,7 @@ void runMainLoop(Triggers& triggers) {
 		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
 		int chr_ = chr.load();
 		if (chr_ >= 0) {
-			//chr_ is, presumably, a utf32 character. We use utf8 internally. Convert.
+			//chr_ is, presumably, a utf32 character. We use utf8 internally. Convert. [Note: This is wrong.]
 			auto codepoints{ 4 - COUNT_LEADING_ZEROS(chr_) / 8 };
 			inputBuffered += codepoints;
 			assert(inputBuffered + 1 < maxInputBufferLength); //Last char must be reserved for 0.
@@ -61,8 +61,8 @@ void runMainLoop(Triggers& triggers) {
 					inputBuffer[i] = 0;
 				std::cout << "\r>         \r> "; //maxInputBufferLength spaces, clear any buffer there and reset cursor to where it should be.
 			}
-
-
+			
+			
 			if (!chr_ || chr_ == 4 || stopMainLoop) { //Null, ctrl-d.
 				chr = getInputCharAsync::stop;
 				break;

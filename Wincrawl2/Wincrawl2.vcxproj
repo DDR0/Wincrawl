@@ -182,8 +182,9 @@
     <ClCompile Include="triggers.cpp" />
     <ClCompile Include="vector_tools.cpp" />
     <ClCompile Include="view.cpp" />
+    <ClCompile Include="screen.cpp" />
     <ClCompile Include="Wincrawl2.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -198,6 +199,7 @@
     <ClInclude Include="triggers.hpp" />
     <ClInclude Include="vector_tools.hpp" />
     <ClInclude Include="view.hpp" />
+    <ClInclude Include="screen.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

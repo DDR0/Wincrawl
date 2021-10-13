@@ -6,7 +6,7 @@
 
 #include "color.hpp"
 	
-Color::Color() : channels{0, 0, 0, 1} {}
+Color::Color() : channels{0, 0, 0, 255} {}
 
 Color::Color(uint32_t rgba) : channels { 
 	static_cast<uint8_t>(rgba>>24     ),
@@ -117,6 +117,11 @@ Color& Color::operator=(uint32_t rgba) {
 	channels[2] = static_cast<uint8_t>(rgba>> 8&0xFF);
 	channels[3] = static_cast<uint8_t>(rgba    &0xFF);
 	return *this;
+}
+
+bool Color::operator==(const Color& other) const {
+	return *reinterpret_cast<const uint32_t*>(channels)
+	    == *reinterpret_cast<const uint32_t*>(other.channels);
 }
 
 uint8_t Color::operator[](size_t i) {

@@ -91,7 +91,8 @@ void View::render(std::ostream& target) {
 		}
 		buffer << "\n";
 	}
-
+	
+	//setwhatever(std::move(buffer))
 	target << buffer.str();
 }
 	

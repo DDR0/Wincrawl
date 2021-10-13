@@ -7,7 +7,7 @@
 #include "hsluv.hpp"
 
 class Color {
-	uint8_t channels[4]{};
+	uint8_t channels[4]{}; //Note: Occasionally used as a uint32_t too.
 	
 public:
 	struct RGBA { uint8_t r; uint8_t g; uint8_t b; uint8_t a; };
@@ -39,6 +39,8 @@ public:
 
 	Color& operator=(const Color&);
 	Color& operator=(uint32_t rgba);
+	
+	bool operator==(const Color&) const;
 
 	uint8_t operator[](size_t);
 	uint8_t operator[](size_t) const;

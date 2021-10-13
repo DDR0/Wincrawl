@@ -4,12 +4,13 @@
 #include <random>
 
 #include "color.hpp"
+#include "ecs.hpp"
+#include "ecs.hpp"
 #include "io.hpp"
 #include "main_loop.hpp"
 #include "places.hpp"
+#include "screen.hpp"
 #include "seq.hpp"
-#include "ecs.hpp"
-#include "ecs.hpp"
 #include "triggers.hpp"
 #include "view.hpp"
 
@@ -58,10 +59,10 @@ int main() {
 	
 	auto aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
 	cout << aColor << "\n";
-	auto bColor = Color(305, 91, 56);
+	auto bColor = Color(0x6d83cfff);
 	cout << bColor << "\n";
 	auto cColor = Color(0x6d83cfff);
-	cout << cColor << "\n";
+	cout << cColor << " = " << (bColor == cColor) << "\n";
 	
 
 	Triggers triggers{};
@@ -85,6 +86,8 @@ int main() {
 	
 	triggers.add("q", [&]() { stopMainLoop = true; });
 	triggers.add("", [&]() { stopMainLoop = true; }); //windows, ctrl-c
+	
+	auto screen = TitleScreen();
 	
 	
 	cout << "Arrow keys to move, alt left/right to turn, q to quit.\n";

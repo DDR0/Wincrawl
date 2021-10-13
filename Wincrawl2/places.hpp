@@ -43,7 +43,7 @@ class Tile : public Entity {
 	const uint_fast16_t id{ 0 };
 
 public:
-	//Let's define some geometry. For edges 0, 1, 2, 3, 4, 5:
+	//Let's define some geometry. For edges 0, 1, 2, 3, 4, 5 of a cube:
 	static constexpr uint8_t oppositeEdge[6]{ 2, 3, 0, 1, 5, 4 };
 	static constexpr uint8_t rotateCW[6]{ 1, 2, 3, 0, 1, 3 }; //Rotate around the Z axis, ie, top-down.
 	static constexpr uint8_t rotateCCW[6]{ 3, 0, 1, 2, 3, 1 }; //Going around a corner from the top will land you "facing" east or west, although it could just as easily be north and south as your rotation isn't tracked.
