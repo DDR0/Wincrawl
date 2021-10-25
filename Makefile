@@ -43,15 +43,15 @@ ifneq ($(DEBUG), yes)
 BASE_CXXFLAGS += -DNDEBUG
 endif
 
-BASE_CXXFLAGS += -Wall -Werror
-
 # Initial compiler options, used before CXXFLAGS and CPPFLAGS. -rdynamic -Wno-literal-suffix
-BASE_CXXFLAGS += -std=c++20 -Wall \
+BASE_CXXFLAGS += -std=c++20 -Wall -Werror \
 	-g -fno-inline-functions -lpthread \
 	-fthreadsafe-statics \
 	-Wno-narrowing -Wno-reorder -Wno-unused \
 	-Wno-unknown-pragmas -Wno-overloaded-virtual \
-	-fstrict-enums
+	-fstrict-enums \
+	-Wformat=2 -Wformat-overflow=2 -Wformat-security \
+	-Wduplicated-branches -Wduplicated-cond
 
 LDFLAGS?=-rdynamic
 
