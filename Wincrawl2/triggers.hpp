@@ -20,4 +20,7 @@ public:
 	const isPartialCommand run(const char* cmd);
 	
 	void add(const char* seq, const std::function<void()> callback);
+	
+	Triggers() {};
+	Triggers(std::vector<Trigger> triggers_) : triggers(triggers_) {};
 };

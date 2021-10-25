@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <random>
+#include <unordered_map>
+#include <memory>
 
 #include "color.hpp"
 #include "ecs.hpp"
@@ -55,7 +57,7 @@ int main() {
 	
 
 	View view{ 23, 23, plane0.getStartingTile() };
-	view.render(cout);
+	//view.render(cout);
 	
 	auto aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
 	cout << aColor << "\n";
@@ -64,7 +66,10 @@ int main() {
 	auto cColor = Color(0x6d83cfff);
 	cout << cColor << " = " << (bColor == cColor) << "\n";
 	
-
+	
+	
+	
+	
 	Triggers triggers{};
 	
 	//Linux arrow key sequences.
@@ -72,26 +77,51 @@ int main() {
 	triggers.add("[B", [&]{ view.move(2); }); //down
 	triggers.add("[C", [&]{ view.move(1); }); //left
 	triggers.add("[D", [&]{ view.move(3); }); //right
-	triggers.add("[1;3C", [&] { view.turn(+1); }); //cw
-	triggers.add("[1;3D", [&] { view.turn(-1); }); //ccw
+	triggers.add("[1;3C", [&]{ view.turn(+1); }); //cw
+	triggers.add("[1;3D", [&]{ view.turn(-1); }); //ccw
 	
 	//Windows arrow key sequences. (These are not valid utf8.)
-	triggers.add("\xE0H", [&] { view.move(0); }); //up
-	triggers.add("\xE0P", [&] { view.move(2); }); //down
-	triggers.add("\xE0M", [&] { view.move(1); }); //left
-	triggers.add("\xE0K", [&] { view.move(3); }); //right
-	//triggers.add("???", [&] { view.turn(+1); }); //cw
-	//triggers.add("???", [&] { view.turn(-1); }); //ccw
+	triggers.add("\xE0H", [&]{ view.move(0); }); //up
+	triggers.add("\xE0P", [&]{ view.move(2); }); //down
+	triggers.add("\xE0M", [&]{ view.move(1); }); //left
+	triggers.add("\xE0K", [&]{ view.move(3); }); //right
+	//triggers.add("???", [&]{ view.turn(+1); }); //cw
+	//triggers.add("???", [&]{ view.turn(-1); }); //ccw
 
 	
-	triggers.add("q", [&]() { stopMainLoop = true; });
-	triggers.add("", [&]() { stopMainLoop = true; }); //windows, ctrl-c
+	triggers.add("q", []{ stopMainLoop = true; }); //[&](parameter_a){ code }
+	triggers.add("", []{ stopMainLoop = true; }); //windows, ctrl-c
 	
-	auto screen = TitleScreen();
+	
+	
+	
+	
+	std::shared_ptr<Screen> currentScreen = nullptr;
+	enum class Screens { title, main, death, credits, debug };
+	const std::unordered_map<const Screens, const std::shared_ptr<Screen>> screens {
+		{ Screens::title, std::make_shared<TitleScreen>(Triggers{{
+			{ "n", [&]{ currentScreen = screens.at(Screens::main); } },
+			{ "x", []{ stopMainLoop = true; } },
+		}}) },
+		{ Screens::main, std::make_shared<MainScreen>() },
+		{ Screens::death, std::make_shared<DeathScreen>() },
+		{ Screens::credits, std::make_shared<DeathScreen>() },
+		{ Screens::debug, std::make_shared<DeathScreen>() },
+	};
+	currentScreen = { screens.at(Screens::title) };
+	
+	auto screen = TitleScreen({{
+		{ "n", [&]{ return; } },
+		{ "x", []{ stopMainLoop = true; } },
+	}});
+	screen.render();
+	
+	
+	
 	
 	
 	cout << "Arrow keys to move, alt left/right to turn, q to quit.\n";
-	runMainLoop(triggers);
+	runMainLoop(currentScreen);
 	
 	if (not tearDownConsole()) {
 		cerr << "Error: Could not reset console.\n";

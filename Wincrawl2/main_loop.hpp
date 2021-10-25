@@ -1,5 +1,5 @@
 #pragma once
-#include "triggers.hpp"
+#include "screen.hpp"
 
 extern bool stopMainLoop;
-void runMainLoop(Triggers& triggers);
+void runMainLoop(std::shared_ptr<Screen>& screen);

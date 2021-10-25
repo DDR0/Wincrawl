@@ -8,6 +8,7 @@
 
 #include "color.hpp"
 #include "ecs.hpp"
+#include "triggers.hpp"
 #include "view.hpp"
 
 class Screen {
@@ -31,9 +32,11 @@ protected:
 	typedef std::vector<std::vector<Cell>> OutputGrid;
 	static OutputGrid output[2];
 	static inline size_t outputBuffer{ 0 }; //Output buffer 0 or 1. The old buffer is used for diffing.
-	inline OutputGrid activeOutputGrid() { return output[outputBuffer]; }
-	
+	inline OutputGrid* activeOutputGrid() { return &output[outputBuffer]; }
+
+private:
 	void writeOutputToScreen();
+protected:
 	
 	class Panel {
 	protected:
@@ -49,7 +52,7 @@ protected:
 		inline void setAutowrap(bool enabled) { autowrap = enabled; }
 		inline void setSize(int x, int y) { size.x = x; size.y = y; } //Must be called during initialization.
 		
-		void render(OutputGrid&); //= 0; Override this.  
+		inline void render(OutputGrid*) { };
 	};
 	
 	class ScrollablePanel : public Panel {
@@ -64,15 +67,22 @@ protected:
 	public:
 		const TextBlock text;
 		inline CenteredTextPanel(const TextBlock text) : Panel{false}, text{text} {};
-		void render(OutputGrid&);
+		void render(OutputGrid*);
 	};
 	
+	Screen() {};
+	Screen(Triggers t) : triggers(t) {};
+	
 public:
-	virtual void inline setSize(int x, int y) = 0;
-	virtual void inline render(View view, Component::Base entity) = 0;
+	Triggers triggers {};
+	
+	virtual ~Screen() = default;
+	
+	virtual void inline setSize(int x, int y) {};
+	virtual void inline render() { writeOutputToScreen(); };
 };
 
-class TitleScreen : Screen {
+class TitleScreen : public Screen {
 	CenteredTextPanel main {{
 		{ 20, "      [4mWincrawl 0.0.1[0m" },
 		{  0, "" },
@@ -81,20 +91,23 @@ class TitleScreen : Screen {
 	}};
 
 public:
-	inline void setSize(int x, int y) override {
+	inline void setSize(int x, int y) {
 		dirty = true;
 		size.x = x, size.y = y;
 		
 		main.setSize(x, y);
 	}
 	
-	inline void render(View view, Component::Base entity) override {
-		//todo: this
+	inline void render() {
+		main.render(activeOutputGrid());
+		Screen::render();
 	}
-	inline TitleScreen() { setSize(110, 25); }
+	inline TitleScreen(Triggers triggers) : Screen(triggers) {
+		setSize(110, 25);
+	}
 };
 
-class MainScreen : Screen {
+class MainScreen : public Screen {
 	Panel view { false };
 	ScrollablePanel memory { true };
 	Panel hints { true };
@@ -119,11 +132,11 @@ public:
 	inline MainScreen() { setSize(110, 25); }
 };
 
-class DeathScreen : Screen {
+class DeathScreen : public Screen {
 	Panel main { false };
 	
 public:
-	inline void setSize(int x, int y) override {
+	inline void setSize(int x, int y) {
 		dirty = true;
 		size.x = x, size.y = y;
 		
@@ -133,11 +146,11 @@ public:
 	
 };
 
-class CreditsScreen : Screen {
+class CreditsScreen : public Screen {
 	Panel main { false };
 	
 public:
-	inline void setSize(int x, int y) override {
+	inline void setSize(int x, int y) {
 		dirty = true;
 		size.x = x, size.y = y;
 		
@@ -147,11 +160,11 @@ public:
 	
 };
 
-class DebugScreen : Screen {
+class DebugScreen : public Screen {
 	ScrollablePanel main { true };
 	
 public:
-	inline void setSize(int x, int y) override {
+	inline void setSize(int x, int y) {
 		dirty = true;
 		size.x = x, size.y = y;
 		

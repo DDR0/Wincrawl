@@ -17,7 +17,7 @@
 #endif
 
 bool stopMainLoop{ false };
-void runMainLoop(Triggers& triggers) {
+void runMainLoop(std::shared_ptr<Screen>& screen) {
 	using namespace std::chrono_literals;
 	
 	std::atomic<int> chr{ -1 };
@@ -55,7 +55,7 @@ void runMainLoop(Triggers& triggers) {
 			//Debug output, includes hex and buffer.
 			//std::cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
 			
-			if (!triggers.run(inputBuffer)) {
+			if (!screen->triggers.run(inputBuffer)) {
 				inputBuffered = 0;
 				for (int i = 0; i < maxInputBufferLength; i++)
 					inputBuffer[i] = 0;

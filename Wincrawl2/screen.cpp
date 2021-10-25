@@ -24,8 +24,8 @@ void Screen::writeOutputToScreen() {
 	OutputGrid newGrid = output[outputBuffer^0];
 	OutputGrid oldGrid = output[outputBuffer^1];
 	
-	static Color lastBackgroundColor { 0x000000 };
-	static Color lastForegroundColor { 0xFFFFFF };
+	static Color lastBackgroundColor { 0x00000000 };
+	static Color lastForegroundColor { 0xFFFFFF00 };
 	static uint8_t lastAttributes {};
 	bool didSkip{ false };
 	
@@ -90,7 +90,7 @@ void Screen::writeOutputToScreen() {
 
 
 
-void Screen::CenteredTextPanel::render(Screen::OutputGrid& buffer) {
+void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 	//Center the block of text in the panel.
 	size_t height{ text.size() };
 	size_t width{ 0 };
@@ -109,9 +109,9 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid& buffer) {
 		return assert(false);
 	}
 	
-	buffer.resize(size.y);
-	if (buffer.at(0).size() != static_cast<size_t>(size.x)) {
-		for (auto& line : buffer) {
+	buffer->resize(size.y);
+	if (buffer->at(0).size() != static_cast<size_t>(size.x)) {
+		for (auto& line : *buffer) {
 			line.resize(size.x);
 		}
 	}
@@ -120,9 +120,11 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid& buffer) {
 	//Flood fill empty. Slight overdraw but c'est la vie.
 	for (size_t y : iota(offset.y, offset.y + size.y)) {
 		for (size_t x : iota(offset.x, offset.x + size.x)) {
-			buffer[y][x].character = " ";
+			(*buffer)[y][x].character = " ";
 		}
 	}
+	
+	(*buffer)[0][0].character = "[0m";
 	
 	//Copy in text. Since text can be variable-width and have escape sequence, etc. we set the
 	//first display cell to the text contents and have the rest as zero-width padding. This
@@ -131,9 +133,9 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid& buffer) {
 	for (size_t y : iota((size_t) 0, height)) {
 		if (text[y].length) {
 			size_t x = 0;
-			buffer[y+offset.y+topLeft.y][x+offset.x+topLeft.x].character = text[y].content;
+			(*buffer)[y+offset.y+topLeft.y][x+offset.x+topLeft.x].character = text[y].content;
 			while (++x < text[y].length) { //Can't use text[y].length, it's the visual width and not the codepoint count.
-				buffer[y+offset.y+topLeft.y][x+offset.x+topLeft.x].character = "";//text[y].content[x]; //This needs to be transmogrified into individual, cut-up strings. >_<
+				(*buffer)[y+offset.y+topLeft.y][x+offset.x+topLeft.x].character = "";//text[y].content[x]; //This needs to be transmogrified into individual, cut-up strings. >_<
 			}
 		}
 	}
