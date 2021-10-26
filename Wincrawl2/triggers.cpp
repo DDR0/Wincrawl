@@ -9,7 +9,7 @@ void Triggers::add(const char* seq, const std::function<void()> callback) {
 }
 
 //Run a registered callback. Returns true if the command was a partial match for a trigger, and therefore wasn't consumed.
-const bool Triggers::run(const char* command) {
+bool Triggers::run(const char* command) {
 	int commandMatchesTriggers{ false };
 
 	for (auto trigger : this->triggers) {

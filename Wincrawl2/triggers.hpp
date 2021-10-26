@@ -17,7 +17,7 @@ class Triggers {
 public:
 	//If you're feeding a character stream buffer to run(...), isPartialCommand can be
 	//used to decide to wait for more characters to be added to the buffer.
-	const isPartialCommand run(const char* cmd);
+	isPartialCommand run(const char* cmd);
 	
 	void add(const char* seq, const std::function<void()> callback);
 	

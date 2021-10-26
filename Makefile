@@ -7,7 +7,7 @@
 #                     enabled (see below). Defaults to 'ccache'.
 #   CXX              C++ compiler comand line.
 #   CXXFLAGS         Additional C++ compiler options.
-#   OPTIMIZE         If set to 'yes' (default), builds with compiler
+#   OPTIMISE         If set to 'yes' (default), builds with compiler
 #                     optimizations enabled (-O2). You may alternatively use
 #                     CXXFLAGS to set your own optimization options.
 #   LDFLAGS          Additional linker options.
@@ -15,8 +15,6 @@
 #                     to run the compiler. If ccache is not installed (i.e.
 #                     found in PATH), this option has no effect.
 
-OPTIMIZE?=no
-DEBUG?=yes
 
 CCACHE?=ccache
 USE_CCACHE?=$(shell which $(CCACHE) > /dev/null 2>&1 && echo yes)
@@ -25,33 +23,36 @@ CCACHE=
 USE_CCACHE=no
 endif
 
-SANITIZE_ADDRESS?=
+SANITIZE_ADDRESS?=yes
 ifneq ($(SANITIZE_ADDRESS), yes)
 SANITIZE_ADDRESS=no
 endif
 
-SANITIZE_UNDEFINED?=
+SANITIZE_UNDEFINED?=yes
 ifneq ($(SANITIZE_UNDEFINED), yes)
 SANITIZE_UNDEFINED=no
 endif
 
-ifeq ($(OPTIMIZE),yes)
+OPTIMISE?=no
+ifeq ($(OPTIMISE),yes)
 BASE_CXXFLAGS += -O3
 endif
 
+DEBUG?=yes
 ifneq ($(DEBUG), yes)
 BASE_CXXFLAGS += -DNDEBUG
 endif
 
 # Initial compiler options, used before CXXFLAGS and CPPFLAGS. -rdynamic -Wno-literal-suffix
-BASE_CXXFLAGS += -std=c++20 -Wall -Werror \
+BASE_CXXFLAGS += -std=c++20 -Wall -Werror -Wextra \
 	-g -fno-inline-functions -lpthread \
 	-fthreadsafe-statics \
 	-Wno-narrowing -Wno-reorder -Wno-unused \
 	-Wno-unknown-pragmas -Wno-overloaded-virtual \
 	-fstrict-enums \
 	-Wformat=2 -Wformat-overflow=2 -Wformat-security \
-	-Wduplicated-branches -Wduplicated-cond
+	-Wduplicated-branches -Wduplicated-cond \
+	-Wno-missing-field-initializers 
 
 LDFLAGS?=-rdynamic
 
@@ -95,15 +96,16 @@ wincrawl: $(OBJ)
 
 checkdirs: $(BUILD_DIR)
 	@printf "\
-	OPTIMIZE            : $(OPTIMIZE)\n\
-USE_CCACHE          : $(USE_CCACHE)\n\
-	CCACHE              : $(CCACHE)\n\
-SANITIZE_ADDRESS    : $(SANITIZE_ADDRESS)\n\
-SANITIZE_UNDEFINED  : $(SANITIZE_UNDEFINED)\n\
-CXX                 : $(CXX)\n\
-	BASE_CXXFLAGS       : $(BASE_CXXFLAGS)\n\
-	CXXFLAGS            : $(CXXFLAGS)\n\
-LDFLAGS             : $(LDFLAGS)\n"
+		OPTIMISE            : $(OPTIMISE)\n\
+		DEBUG               : $(DEBUG)\n\
+		USE_CCACHE          : $(USE_CCACHE)\n\
+		CCACHE              : $(CCACHE)\n\
+		SANITIZE_ADDRESS    : $(SANITIZE_ADDRESS)\n\
+		SANITIZE_UNDEFINED  : $(SANITIZE_UNDEFINED)\n\
+		CXX                 : $(CXX)\n\
+		BASE_CXXFLAGS       : $(BASE_CXXFLAGS)\n\
+		CXXFLAGS            : $(CXXFLAGS)\n\
+		LDFLAGS             : $(LDFLAGS)\n"
 
 
 $(BUILD_DIR):
