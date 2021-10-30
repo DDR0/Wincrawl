@@ -70,7 +70,6 @@ protected:
 		void render(OutputGrid*);
 	};
 	
-	Screen() {};
 	Screen(Triggers t) : triggers(t) {};
 	
 public:
@@ -129,7 +128,9 @@ public:
 		hints.setSize(interiorWidth, interiorHeight-viewHeight-gutter);
 		prompt.setSize(interiorWidth, promptHeight);
 	}
-	inline MainScreen() { setSize(110, 25); }
+	inline MainScreen(Triggers triggers) : Screen(triggers) {
+		setSize(110, 25);
+	}
 };
 
 class DeathScreen : public Screen {
@@ -142,7 +143,9 @@ public:
 		
 		main.setSize(x, y);
 	}
-	inline DeathScreen() { setSize(110, 25); }
+	inline DeathScreen(Triggers triggers) : Screen(triggers) {
+		setSize(110, 25);
+	}
 	
 };
 
@@ -156,7 +159,9 @@ public:
 		
 		main.setSize(x, y);
 	}
-	inline CreditsScreen() { setSize(110, 25); }
+	inline CreditsScreen(Triggers triggers) : Screen(triggers) {
+		setSize(110, 25);
+	}
 	
 };
 
@@ -170,5 +175,7 @@ public:
 		
 		main.setSize(x, y);
 	}
-	inline DebugScreen() { setSize(110, 25); }
+	inline DebugScreen(Triggers triggers) : Screen(triggers) {
+		setSize(110, 25);
+	}
 };
