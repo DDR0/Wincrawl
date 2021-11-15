@@ -48,6 +48,9 @@
     <ClCompile Include="raytracer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="screen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="color.hpp">
@@ -81,6 +84,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="raytracer.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="screen.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hashMapShimsForVisualStudio.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

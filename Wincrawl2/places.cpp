@@ -211,34 +211,46 @@ Plane::Room Plane::genSquareRoom(
 	
 	auto doors = possibleDoors;
 	std::vector<RoomConnectionTile> connections{};
+
+	const size_t top         = 0;
+	const size_t left        = 0;
+	const size_t bottom      = roomY - 1;
+	const size_t right       = roomX - 1;
+	const size_t halfWidth   = roomX / 2;
+	const size_t halfHeight  = roomY / 2;
+	const size_t leftThird   = static_cast<size_t>(round(roomX / 3.0));
+	const size_t rightThird  = static_cast<size_t>(round(roomX / 1.5));
+	const size_t topThird    = static_cast<size_t>(round(roomY / 3.0));
+	const size_t bottomThird = static_cast<size_t>(round(roomY / 1.5));
+	
 	if(wrapX && wrapY) { //No walls, no doors.
 	}
 	else if (!wrapX && !wrapY) { //Square room, put one door in each wall.
-		if (doors & 0b0001) connections.emplace_back(room[roomX / 2][0        ], 0);
-		if (doors & 0b0010) connections.emplace_back(room[roomX - 1][roomY / 2], 1);
-		if (doors & 0b0100) connections.emplace_back(room[roomX / 2][roomY - 1], 2);
-		if (doors & 0b1000) connections.emplace_back(room[0        ][roomY / 2], 3);
+		if (doors & 0b0001) connections.emplace_back(room[halfWidth][top       ], 0);
+		if (doors & 0b0010) connections.emplace_back(room[right    ][halfHeight], 1);
+		if (doors & 0b0100) connections.emplace_back(room[halfWidth][bottom    ], 2);
+		if (doors & 0b1000) connections.emplace_back(room[left     ][halfHeight], 3);
 	}
 	else if (!wrapX) {
-		if (roomY < 3) {
-			if (doors & 0b0001) connections.emplace_back(room[0          ][roomY / 2  ], 3);
-			if (doors & 0b0100) connections.emplace_back(room[roomX - 1  ][roomY / 2  ], 1);
+		if (roomY <= 3) {
+			if (doors & 0b0001) connections.emplace_back(room[left      ][halfHeight ], 3);
+			if (doors & 0b0100) connections.emplace_back(room[right     ][halfHeight ], 1);
 		} else {
-			if (doors & 0b0001) connections.emplace_back(room[0          ][roomY / 3  ], 3);
-			if (doors & 0b0010) connections.emplace_back(room[0          ][roomY / 1.5], 3);
-			if (doors & 0b0100) connections.emplace_back(room[roomX - 1  ][roomY / 3  ], 1);
-			if (doors & 0b1000) connections.emplace_back(room[roomX - 1  ][roomY / 1.5], 1);
+			if (doors & 0b0001) connections.emplace_back(room[left      ][topThird   ], 3);
+			if (doors & 0b0010) connections.emplace_back(room[left      ][bottomThird], 3);
+			if (doors & 0b0100) connections.emplace_back(room[right     ][topThird   ], 1);
+			if (doors & 0b1000) connections.emplace_back(room[right     ][bottomThird], 1);
 		}
 	}
 	else if (!wrapY) {
-		if (roomX < 3) {
-			if (doors & 0b0010) connections.emplace_back(room[roomX / 2  ][roomY - 1  ], 2);
-			if (doors & 0b1000) connections.emplace_back(room[roomX / 2  ][0          ], 0);
+		if (roomX <= 3) {
+			if (doors & 0b0010) connections.emplace_back(room[halfWidth ][bottom     ], 2);
+			if (doors & 0b1000) connections.emplace_back(room[halfWidth ][top        ], 0);
 		} else {
-			if (doors & 0b0001) connections.emplace_back(room[roomX / 3  ][roomY - 1  ], 2);
-			if (doors & 0b0010) connections.emplace_back(room[roomX / 1.5][roomY - 1  ], 2);
-			if (doors & 0b0100) connections.emplace_back(room[roomX / 3  ][0          ], 0);
-			if (doors & 0b1000) connections.emplace_back(room[roomX / 1.5][0          ], 0);
+			if (doors & 0b0001) connections.emplace_back(room[leftThird ][bottom     ], 2);
+			if (doors & 0b0010) connections.emplace_back(room[rightThird][bottom     ], 2);
+			if (doors & 0b0100) connections.emplace_back(room[leftThird ][top        ], 0);
+			if (doors & 0b1000) connections.emplace_back(room[rightThird][top        ], 0);
 		}
 	}
 	else {

@@ -19,10 +19,15 @@ std::vector<std::vector<Screen::Cell>> Screen::output[2] {
 void Screen::writeOutputToScreen() {
 	static std::string buf {};
 	constexpr size_t expectedCharsPerGlyph = 25; //It takes 13 characters to set the foreground, another 13 for the background, and one for the character itself. Plus anything else to move the cursor around.
-	buf.reserve(Screen::size.y * Screen::size.x * expectedCharsPerGlyph);
+	buf.reserve(expectedCharsPerGlyph * Screen::size.y * Screen::size.x);
 	
 	OutputGrid newGrid = output[outputBuffer^0];
 	OutputGrid oldGrid = output[outputBuffer^1];
+
+	assert((
+		"Grid resized but not marked dirty.", 
+		dirty || newGrid.size() == oldGrid.size() && newGrid[0].size() == oldGrid[0].size() && newGrid[1].size() == oldGrid[1].size()
+	));
 	
 	static Color lastBackgroundColor { 0x00000000 };
 	static Color lastForegroundColor { 0xFFFFFF00 };
@@ -37,13 +42,13 @@ void Screen::writeOutputToScreen() {
 	} else {
 		buf.assign(seq::moveToOrigin);
 	}
-		
+
 	for (auto y : iota(size_t(0), newGrid.size())) {
 		for (auto x : iota(size_t(0), newGrid[0].size())) {
 			const Cell& cell = newGrid[y][x];
-			const Cell& writ = oldGrid[y][x];
-			
-			if (!dirty && cell == writ) {
+
+			if (!dirty && cell == oldGrid[y][x]) { //Note: oldGrid is only dereferencable when clean; otherwise its size might be smaller than newGrid. (This includes taking a reference to it.)
+				//If the current cell is the same as the old cell, skip writing it. This is solely to cut down on overdraw.
 				didSkip = true;
 				continue;
 			}

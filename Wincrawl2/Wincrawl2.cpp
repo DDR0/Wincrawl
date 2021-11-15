@@ -8,6 +8,7 @@
 #include "color.hpp"
 #include "ecs.hpp"
 #include "ecs.hpp"
+#include "hashMapShimsForVisualStudio.hpp"
 #include "io.hpp"
 #include "main_loop.hpp"
 #include "places.hpp"
@@ -70,7 +71,7 @@ int main() {
 	//Let's create some screens to interact with the world through.
 	std::shared_ptr<Screen> currentScreen = nullptr;
 	enum class Screens { title, main, death, credits, debug };
-	const std::unordered_map<const Screens, const std::shared_ptr<Screen>> screens {
+	const std::unordered_map<const Screens, const std::shared_ptr<Screen>, LiteralHash> screens {
 		{ Screens::title, std::make_shared<TitleScreen>(Triggers{{
 			{ "n", [&]{ currentScreen = screens.at(Screens::main); } }, //new game
 			{ "q", []{ stopMainLoop = true; } },
