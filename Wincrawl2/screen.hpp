@@ -77,7 +77,7 @@ public:
 	
 	virtual ~Screen() = default;
 	
-	virtual void inline setSize(int x, int y) {};
+	virtual void setSize(size_t x, size_t y);
 	virtual void inline render() { writeOutputToScreen(); };
 };
 
@@ -90,18 +90,19 @@ class TitleScreen : public Screen {
 	}};
 
 public:
-	inline void setSize(int x, int y) {
-		dirty = true;
-		size.x = x, size.y = y;
-		
+	inline void setSize(size_t x, size_t y) override {
+		std::cerr << "TitleScreen resized.\n";
+		Screen::setSize(x, y);
 		main.setSize(x, y);
 	}
 	
 	inline void render() {
+		std::cerr << "TitleScreen rendered.\n";
 		main.render(activeOutputGrid());
 		Screen::render();
 	}
 	inline TitleScreen(Triggers triggers) : Screen(triggers) {
+		std::cerr << "TitleScreen constructed.\n";
 		setSize(110, 25);
 	}
 };
@@ -113,9 +114,8 @@ class MainScreen : public Screen {
 	Panel prompt { true };
 
 public:
-	inline void setSize(int x, int y) override {
-		dirty = true;
-		size.x = x, size.y = y;
+	inline void setSize(size_t x, size_t y) override {
+		Screen::setSize(x, y);
 		
 		int gutter = 1;
 		int promptHeight = 2;
@@ -128,6 +128,7 @@ public:
 		hints.setSize(interiorWidth, interiorHeight-viewHeight-gutter);
 		prompt.setSize(interiorWidth, promptHeight);
 	}
+	
 	inline MainScreen(Triggers triggers) : Screen(triggers) {
 		setSize(110, 25);
 	}
@@ -137,12 +138,11 @@ class DeathScreen : public Screen {
 	Panel main { false };
 	
 public:
-	inline void setSize(int x, int y) {
-		dirty = true;
-		size.x = x, size.y = y;
-		
+	inline void setSize(size_t x, size_t y) override {
+		Screen::setSize(x, y);
 		main.setSize(x, y);
 	}
+	
 	inline DeathScreen(Triggers triggers) : Screen(triggers) {
 		setSize(110, 25);
 	}
@@ -153,10 +153,8 @@ class CreditsScreen : public Screen {
 	Panel main { false };
 	
 public:
-	inline void setSize(int x, int y) {
-		dirty = true;
-		size.x = x, size.y = y;
-		
+	inline void setSize(size_t x, size_t y) {
+		Screen::setSize(x, y);
 		main.setSize(x, y);
 	}
 	inline CreditsScreen(Triggers triggers) : Screen(triggers) {
@@ -169,10 +167,8 @@ class DebugScreen : public Screen {
 	ScrollablePanel main { true };
 	
 public:
-	inline void setSize(int x, int y) {
-		dirty = true;
-		size.x = x, size.y = y;
-		
+	inline void setSize(size_t x, size_t y) {
+		Screen::setSize(x, y);
 		main.setSize(x, y);
 	}
 	inline DebugScreen(Triggers triggers) : Screen(triggers) {

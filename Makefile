@@ -34,7 +34,7 @@ SANITIZE_UNDEFINED=no
 endif
 
 OPTIMISE?=no
-ifeq ($(OPTIMISE),yes)
+ifeq ($(OPTIMISE), yes)
 BASE_CXXFLAGS += -O3
 endif
 
@@ -52,13 +52,13 @@ BASE_CXXFLAGS += -std=c++20 -Wall -Werror -Wextra \
 	-fstrict-enums \
 	-Wformat=2 -Wformat-overflow=2 -Wformat-security \
 	-Wduplicated-branches -Wduplicated-cond \
-	-Wno-missing-field-initializers 
+	-Wno-missing-field-initializers
 
 LDFLAGS?=-rdynamic
 
 # Check for sanitize-address option
 ifeq ($(SANITIZE_ADDRESS), yes)
-BASE_CXXFLAGS += -g3 -fsanitize=address
+BASE_CXXFLAGS += -g3 -fsanitize=address -fstack-protector-all
 LDFLAGS += -fsanitize=address
 endif
 

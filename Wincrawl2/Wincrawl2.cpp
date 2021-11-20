@@ -71,9 +71,13 @@ int main() {
 	//Let's create some screens to interact with the world through.
 	std::shared_ptr<Screen> currentScreen = nullptr;
 	enum class Screens { title, main, death, credits, debug };
+	auto switchScreen = [&](std::shared_ptr<Screen> nextScreen) {
+		currentScreen = nextScreen;
+		nextScreen->render();
+	};
 	const std::unordered_map<const Screens, const std::shared_ptr<Screen>, LiteralHash> screens {
 		{ Screens::title, std::make_shared<TitleScreen>(Triggers{{
-			{ "n", [&]{ currentScreen = screens.at(Screens::main); } }, //new game
+			{ "n", [&]{ switchScreen(screens.at(Screens::main)); } }, //new game
 			{ "q", []{ stopMainLoop = true; } },
 			{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
 		}}) },

@@ -16,6 +16,23 @@ std::vector<std::vector<Screen::Cell>> Screen::output[2] {
 	{ Screen::size.y, std::vector<Screen::Cell>{ Screen::size.x } },
 };
 
+void Screen::setSize(size_t x, size_t y) {
+	if (output[0].size() != output[1].size() || output[0][0].size() != output[1][0].size()) {
+		throw("Buffer size mismatch.");
+	}
+	
+	dirty = true;
+	size.x = x, size.y = y;
+	if (output[0].size() != y || output[0][0].size() != x) {
+		for (auto& buffer : output) {
+			buffer.resize(y);
+			for (auto& line : buffer) {
+				line.resize(x);
+			}
+		}
+	}
+};
+
 void Screen::writeOutputToScreen() {
 	static std::string buf {};
 	constexpr size_t expectedCharsPerGlyph = 25; //It takes 13 characters to set the foreground, another 13 for the background, and one for the character itself. Plus anything else to move the cursor around.
@@ -26,7 +43,7 @@ void Screen::writeOutputToScreen() {
 
 	assert((
 		"Grid resized but not marked dirty.", 
-		dirty || newGrid.size() == oldGrid.size() && newGrid[0].size() == oldGrid[0].size() && newGrid[1].size() == oldGrid[1].size()
+		dirty || (newGrid.size() == oldGrid.size() && newGrid[0].size() == oldGrid[0].size() && newGrid[1].size() == oldGrid[1].size())
 	));
 	
 	static Color lastBackgroundColor { 0x00000000 };
@@ -109,20 +126,18 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 		size.y/2 - static_cast<int>(height)/2,
 	};
 	
-	if (size.x < 1 || size.y < 1) {
-		std::cerr << "Error: Invalid screen size of < 1 character. Skipping render.\n";
-		return assert(false);
-	}
+	assert((
+		"Error: Invalid screen size of < 1 character. Skipping render.",
+		size.x && size.y
+	));
 	
-	buffer->resize(size.y);
-	if (buffer->at(0).size() != static_cast<size_t>(size.x)) {
-		for (auto& line : *buffer) {
-			line.resize(size.x);
-		}
-	}
+	assert((
+		"Incorrect grid size, `offset + size <= grid.size()`.\ngg ez",
+		(*buffer).size() >= static_cast<size_t>(offset.y + size.y) && 
+		(*buffer)[0].size() >= static_cast<size_t>(offset.x + size.x)
+	));
 	
-	
-	//Flood fill empty. Slight overdraw but c'est la vie.
+	//Flood fill empty. Overdrawn later but oh well.
 	for (size_t y : iota(offset.y, offset.y + size.y)) {
 		for (size_t x : iota(offset.x, offset.x + size.x)) {
 			(*buffer)[y][x].character = " ";
