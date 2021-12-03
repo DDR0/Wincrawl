@@ -20,6 +20,7 @@ mono_crash.*
 wincrawl
 [Dd]ebug/
 [Dd]ebugPublic/
+doc/
 [Rr]elease/
 [Rr]eleases/
 x64/
