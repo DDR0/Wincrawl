@@ -190,6 +190,7 @@
   <ItemGroup>
     <ClInclude Include="color.hpp" />
     <ClInclude Include="hashMapShimsForVisualStudio.hpp" />
+    <ClInclude Include="textbits.hpp" />
     <ClInclude Include="hsluv.hpp" />
     <ClInclude Include="io.hpp" />
     <ClInclude Include="main_loop.hpp" />

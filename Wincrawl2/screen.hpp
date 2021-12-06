@@ -8,9 +8,15 @@
 
 #include "color.hpp"
 #include "ecs.hpp"
+#include "textbits.hpp"
 #include "triggers.hpp"
 #include "view.hpp"
 
+/**
+ * Screens are the different views of our application. Each screen has at least
+ * one panel in it, which shows content. For example, the main screen shows the
+ * view panel, granting us a window into the world as we navigate it.
+ */
 class Screen {
 protected:
 	struct Size { uint_fast16_t x; uint_fast16_t y; };
@@ -18,18 +24,8 @@ protected:
 	
 	bool dirty{ true }; //Ideally, only used when the terminal has been resized. Set on screen transition so there's a way back from bad states anyway.
 	
-	struct Cell { //TODO: Test this is 64 bytes.
-		const char* character{ "🯄" }; //A one-character-wide utf8 grapheme. Supports combining characters, non-latin unicode, etc.
-		Color background {};
-		Color foreground {};
-		uint8_t attributes {};
-		
-		constexpr static uint_fast8_t bold      { 1 << 0 };
-		constexpr static uint_fast8_t underline { 1 << 1 };
-		
-		bool operator==(const Cell&) const = default;
-	};
-	typedef std::vector<std::vector<Cell>> OutputGrid;
+	typedef TextCell Cell;
+	typedef TextCellGrid OutputGrid;
 	static OutputGrid output[2];
 	static inline size_t outputBuffer{ 0 }; //Output buffer 0 or 1. The old buffer is used for diffing.
 	inline OutputGrid* activeOutputGrid() { return &output[outputBuffer]; }
@@ -42,15 +38,20 @@ protected:
 	protected:
 		struct Size { int x; int y; };
 		struct Offset { int x; int y; };
-		bool autowrap {}; //Wrap text at the spaces.
+		bool autowrap {}; ///< Wrap text at the spaces.
 	
-		Size size {};
-		Offset offset {}; //Scroll the panel by x/y, starting from the bottom-left.
+		Size size {}; ///< Size of the panel itself.
+		Offset position {}; ///< Offset of the panel.
+		Offset offset {}; ///< Scroll the contents of the panel by x/y, starting from the bottom-left.
 	
 	public:
 		inline Panel(bool autowrap = true) : autowrap(autowrap) {}
 		inline void setAutowrap(bool enabled) { autowrap = enabled; }
-		inline void setSize(int x, int y) { size.x = x; size.y = y; } //Must be called during initialization.
+		inline void setSize(int w, int h) { size.x = w, size.y = h; } //Must be called during initialization.
+		inline void setSize(int x, int y, int w, int h) {
+			position.x = x, position.y = y;
+			size.x = w, size.y = h;
+		} 
 		
 		inline void render(OutputGrid*) { };
 	};
@@ -60,6 +61,7 @@ protected:
 		inline void setOffset(int x, int y) { offset = {x, y}; }
 	};
 	
+	// TODO: Make this support non-zero positions.
 	class CenteredTextPanel : public Panel {
 		struct TextLine{ const size_t length; const char* content; };
 		typedef std::vector<TextLine> TextBlock;
@@ -70,11 +72,24 @@ protected:
 		void render(OutputGrid*);
 	};
 	
-	Screen(Triggers t) : triggers(t) {};
+	class ViewPanel : public Panel {
+	public:
+		///Render the view to the view hole.
+		void render(OutputGrid* grid, View view) {
+			view.render(getTextCellSubGrid(
+				grid, 
+				offset.x,
+				offset.y,
+				offset.x + size.x,
+				offset.y + size.y
+			));
+		};
+	};
 	
 public:
 	Triggers triggers {};
 	
+	Screen(Triggers t) : triggers(t) {};
 	virtual ~Screen() = default;
 	
 	virtual void setSize(size_t x, size_t y);
@@ -82,7 +97,7 @@ public:
 };
 
 class TitleScreen : public Screen {
-	CenteredTextPanel main {{
+	CenteredTextPanel text {{
 		{ 20, "      [4mWincrawl 0.0.1[0m" },
 		{  0, "" },
 		{ 20, "n) Enter the Sharded" },
@@ -90,30 +105,52 @@ class TitleScreen : public Screen {
 	}};
 
 public:
-	inline void setSize(size_t x, size_t y) override {
-		std::cerr << "TitleScreen resized.\n";
-		Screen::setSize(x, y);
-		main.setSize(x, y);
-	}
-	
-	inline void render() {
-		std::cerr << "TitleScreen rendered.\n";
-		main.render(activeOutputGrid());
-		Screen::render();
-	}
-	inline TitleScreen(Triggers triggers) : Screen(triggers) {
+	TitleScreen(Triggers triggers) : Screen(triggers) {
 		std::cerr << "TitleScreen constructed.\n";
 		setSize(110, 25);
 	}
+	
+	inline void setSize(size_t x, size_t y) override {
+		std::cerr << "TitleScreen resized.\n";
+		Screen::setSize(x, y);
+		text.setSize(0, 0, x, y);
+	}
+	
+	inline void render() override {
+		std::cerr << "TitleScreen rendered.\n";
+		text.render(activeOutputGrid());
+		Screen::render();
+	}
+	
 };
 
 class MainScreen : public Screen {
-	Panel view { false };
-	ScrollablePanel memory { true };
-	Panel hints { true };
-	Panel prompt { true };
+	ViewPanel viewPanel { false };
+	ScrollablePanel memoryPanel { true };
+	Panel hintsPanel { true };
+	Panel promptPanel { true };
+	
+	View view;
 
 public:
+	MainScreen(View& view, Triggers triggers) : Screen(triggers), view(view) {
+		setSize(110, 25);
+	}
+	
+	/**
+	 * Screen Layout
+	 * o-----------o-------o
+	 * |1↔       0↕|1↔   0↕|
+	 * |           |       |
+	 * | viewPanel | memry |
+	 * |           |       |
+	 * |           |       |
+	 * o-----------o-------o
+	 * |1↔  hintsPanel   1↕|
+	 * |1↔  promptPanel  0↕|
+	 * o-------------------o
+	 * ✥: Stretchiness ratio, like CSS `flex-grow`.
+	 */
 	inline void setSize(size_t x, size_t y) override {
 		Screen::setSize(x, y);
 		
@@ -123,14 +160,20 @@ public:
 		int viewWidth = interiorWidth*2/3;
 		int viewHeight = interiorHeight/2 - promptHeight/2;
 		
-		view.setSize(viewWidth, viewHeight);
-		memory.setSize(interiorWidth-viewWidth-gutter, viewHeight);
-		hints.setSize(interiorWidth, interiorHeight-viewHeight-gutter);
-		prompt.setSize(interiorWidth, promptHeight);
+		viewPanel.setSize(gutter, gutter, viewWidth, viewHeight);
+		memoryPanel.setSize(gutter+viewWidth+gutter, gutter, interiorWidth-viewWidth-gutter, viewHeight);
+		hintsPanel.setSize(gutter, gutter+viewHeight+gutter, interiorWidth, interiorHeight-viewHeight-gutter-promptHeight);
+		promptPanel.setSize(gutter, gutter+viewHeight+gutter, interiorWidth, promptHeight);
 	}
 	
-	inline MainScreen(Triggers triggers) : Screen(triggers) {
-		setSize(110, 25);
+	inline void render() override {
+		//Draw the main view, so we can see the world we're in.
+		viewPanel.render(activeOutputGrid(), view);
+		memoryPanel.render(activeOutputGrid());
+		hintsPanel.render(activeOutputGrid());
+		promptPanel.render(activeOutputGrid());
+		
+		Screen::render();
 	}
 };
 

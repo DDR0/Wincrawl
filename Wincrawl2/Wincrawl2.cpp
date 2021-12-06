@@ -76,51 +76,62 @@ int main() {
 		nextScreen->render();
 	};
 	const std::unordered_map<const Screens, const std::shared_ptr<Screen>, LiteralHash> screens {
-		{ Screens::title, std::make_shared<TitleScreen>(Triggers{{
-			{ "n", [&]{ switchScreen(screens.at(Screens::main)); } }, //new game
-			{ "q", []{ stopMainLoop = true; } },
-			{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
-		}}) },
+		{ Screens::title, std::make_shared<TitleScreen>(
+			Triggers{{
+				{ "n", [&]{ switchScreen(screens.at(Screens::main)); } }, //new game
+				{ "q", []{ stopMainLoop = true; } },
+				{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
+			}}
+		) },
 		
-		{ Screens::main, std::make_shared<MainScreen>(Triggers{{
-			//Linux arrow key sequences.
-			{ "[A", [&]{ view.move(0); } }, //up
-			{ "[B", [&]{ view.move(2); } }, //down
-			{ "[C", [&]{ view.move(1); } }, //left
-			{ "[D", [&]{ view.move(3); } }, //right
-			{ "[1;3C", [&]{ view.turn(+1); } }, //cw
-			{ "[1;3D", [&]{ view.turn(-1); } }, //ccw
-			
-			//Windows arrow key sequences. (These are not valid utf8.)
-			{ "\xE0H", [&]{ view.move(0); } }, //up
-			{ "\xE0P", [&]{ view.move(2); } }, //down
-			{ "\xE0M", [&]{ view.move(1); } }, //left
-			{ "\xE0K", [&]{ view.move(3); } }, //right   \xE0 = à?
-			//{ "???", [&]{ view.turn(+1); } }, //cw     TODO: FILL THIS IN
-			//{ "???", [&]{ view.turn(-1); } }, //ccw
-			
-			//Other key sequences.
-			{ "q", []{ stopMainLoop = true; } }, 
-			{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
-		}}) },
+		{ Screens::main, std::make_shared<MainScreen>(
+			view,
+			Triggers{{
+				//Linux arrow key sequences.
+				{ "[A", [&]{ view.move(0); } }, //up
+				{ "[B", [&]{ view.move(2); } }, //down
+				{ "[C", [&]{ view.move(1); } }, //left
+				{ "[D", [&]{ view.move(3); } }, //right
+				{ "[1;3C", [&]{ view.turn(+1); } }, //cw
+				{ "[1;3D", [&]{ view.turn(-1); } }, //ccw
+				
+				//Windows arrow key sequences. (These are not valid utf8.)
+				{ "\xE0H", [&]{ view.move(0); } }, //up
+				{ "\xE0P", [&]{ view.move(2); } }, //down
+				{ "\xE0M", [&]{ view.move(1); } }, //left
+				{ "\xE0K", [&]{ view.move(3); } }, //right   \xE0 = à?
+				//{ "???", [&]{ view.turn(+1); } }, //cw     TODO: FILL THIS IN
+				//{ "???", [&]{ view.turn(-1); } }, //ccw
+				
+				//Other key sequences.
+				{ "q", []{ stopMainLoop = true; } }, 
+				{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
+			}}
+		) },
 		
-		{ Screens::death, std::make_shared<DeathScreen>(Triggers{{
-			{ "n", [&]{ currentScreen = screens.at(Screens::main); } }, //new game
-			{ "q", []{ stopMainLoop = true; } },
-			{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
-		}}) },
+		{ Screens::death, std::make_shared<DeathScreen>(
+			Triggers{{
+				{ "n", [&]{ currentScreen = screens.at(Screens::main); } }, //new game
+				{ "q", []{ stopMainLoop = true; } },
+				{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
+			}}
+		) },
 		
-		{ Screens::credits, std::make_shared<CreditsScreen>(Triggers{{
-			{ "r", [&]{ currentScreen = screens.at(Screens::main); } }, //return to game
-			{ "q", []{ stopMainLoop = true; } },
-			{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
-		}}) },
+		{ Screens::credits, std::make_shared<CreditsScreen>(
+			Triggers{{
+				{ "r", [&]{ currentScreen = screens.at(Screens::main); } }, //return to game
+				{ "q", []{ stopMainLoop = true; } },
+				{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
+			}}
+		) },
 		
-		{ Screens::debug, std::make_shared<DebugScreen>(Triggers{{
-			{ "r", [&]{ currentScreen = screens.at(Screens::main); } }, //return to game
-			{ "q", []{ stopMainLoop = true; } },
-			{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
-		}}) },
+		{ Screens::debug, std::make_shared<DebugScreen>(
+			Triggers{{
+				{ "r", [&]{ currentScreen = screens.at(Screens::main); } }, //return to game
+				{ "q", []{ stopMainLoop = true; } },
+				{ "", []{ stopMainLoop = true; } }, //windows, ctrl-c
+			}}
+		) },
 	};
 	currentScreen = { screens.at(Screens::title) };
 	

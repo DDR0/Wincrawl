@@ -92,5 +92,8 @@
     <ClInclude Include="hashMapShimsForVisualStudio.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="textbits.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

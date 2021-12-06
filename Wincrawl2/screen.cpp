@@ -42,7 +42,7 @@ void Screen::writeOutputToScreen() {
 	OutputGrid oldGrid = output[outputBuffer^1];
 
 	assert((
-		"Grid resized but not marked dirty.", 
+		"Grid resized but not marked dirty.",
 		dirty || (newGrid.size() == oldGrid.size() && newGrid[0].size() == oldGrid[0].size() && newGrid[1].size() == oldGrid[1].size())
 	));
 	

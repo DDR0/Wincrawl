@@ -1,10 +1,12 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 
-#include "places.hpp"
 #include "ecs.hpp"
+#include "places.hpp"
 #include "raytracer.hpp"
+#include "textbits.hpp"
 
 class View {
 	//A view is a regular grid of tiles, as seen from a specific tile.
@@ -28,6 +30,7 @@ public:
 	View(uint8_t width, uint8_t height, Tile* pointOfView);
 
 	void render(std::ostream& target);
+	void render(std::unique_ptr<TextCellSubGrid> target);
 	
 	void moveCamera(int direction);
 	
