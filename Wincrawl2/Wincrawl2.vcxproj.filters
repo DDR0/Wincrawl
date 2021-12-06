@@ -51,6 +51,9 @@
     <ClCompile Include="screen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="textbits.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="color.hpp">
