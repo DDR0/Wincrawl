@@ -109,7 +109,7 @@ void Raytracer::trace(double sx, double sy, double dx, double dy) {
 	reset(static_cast<int>(sx), static_cast<int>(sy));
 	
 	decltype(loc) oldloc;
-	const int steps = static_cast<int>(std::max(abs(sx-dx), abs(sy-dy)));
+	const int steps = static_cast<int>(std::max(abs(sx-dx), abs(sy-dy)) + 1); //I don't know quite why the +1 is needed, but it solves a problem where 19,2 -> 20,3 -> 21,3 -> _23,2_ for some values.
 	int lastY{ static_cast<int>(sy) }; //We move in a zig-zag pattern, so x and y do not change simultaneously. (We don't have diagonal links in our tiling system.)
 	
 	
@@ -119,6 +119,7 @@ void Raytracer::trace(double sx, double sy, double dx, double dy) {
 	for (;step <= steps;) {
 		const int x{ static_cast<int>(round(sx + (dx-sx) * step/steps)) };
 		const int y{ static_cast<int>(round(sy + (dy-sy) * step/steps)) };
+		//std::cout << "Tracing to " << x << "/" << y << "\n";
 		
 		//Advance the raywalker to the tile. Stop couldn't move there.
 		oldloc = loc;
