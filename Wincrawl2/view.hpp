@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <iostream>
 
 #include "ecs.hpp"
 #include "places.hpp"
@@ -18,8 +19,9 @@ class View {
 	inline static Tile emptyTile{};
 	
 	Raytracer raytracer{{
-		.onEachTile = [&](auto loc, auto x, auto y){
-			grid[x][y] = loc ? loc : &emptyTile;
+		.onEachTile = [&](auto loc, auto x, auto y) {
+			std::cout << "cb loc: " << grid.size() << "\n";
+			this->grid[x][y] = loc ? loc : &emptyTile;
 		}
 	}};
 
@@ -31,6 +33,7 @@ public:
 
 	void render(std::ostream& target);
 	void render(std::unique_ptr<TextCellSubGrid> target);
+	void render();
 	
 	void moveCamera(int direction);
 	

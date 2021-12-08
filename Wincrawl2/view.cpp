@@ -7,12 +7,15 @@
 #include "seq.hpp"
 #include "view.hpp"
 
+auto red = Color(0xFF0000FF);
 
 View::View(uint8_t width, uint8_t height, Tile* pointOfView)
 	: loc(pointOfView)
 {
 	viewSize[0] = width;
 	viewSize[1] = height;
+	
+	std::cout << "init loc pre: " << grid.size() << "\n";
 
 	grid.reserve(width);
 	for (int x = 0; x < viewSize[0]; x++) {
@@ -29,131 +32,48 @@ View::View(uint8_t width, uint8_t height, Tile* pointOfView)
 	//raytracer.onEachTile = [&](auto loc, auto x, auto y){
 	//	grid[x][y] = loc ? loc : &emptyTile;
 	//};
+	
+	std::cout << "init loc post: " << grid.size() << "\n";
 }
 
 void View::render(std::ostream& target) {
-	assert(loc); //If no location is defined, fail.
-	raytracer.setOriginTile(loc, rot);
-
-	int viewloc[2] = { viewSize[0] / 2, viewSize[1] / 2 };
-
-	//First, all our tiles are hidden.
-	for (int x = 0; x < viewSize[0]; x++) {
-		for (int y = 0; y < viewSize[1]; y++) {
-			grid[x][y] = &hiddenTile;
-		}
-	}
-	
-	//TODO: Rework this so it traces the lines around true (integer) lines first, then the final true lines.
-	for (auto offset : std::vector<double>{0.25, 0.75, 0.5, 0}) {
-		for (double x = 0; x < viewSize[0]; x += viewSize[0] - 1) {
-			for (double y = 0; y < viewSize[1]-1; y++) {
-				raytracer.trace(viewloc[0], viewloc[1], x, y + offset);
-			}
-		}
-		for (double x = 0; x < viewSize[0]-1; x++) {
-			for (double y = 0; y < viewSize[1]; y += viewSize[1] - 1) {
-				raytracer.trace(viewloc[0], viewloc[1], x + offset, y);
-			}
-		}
-	}
 	
 	//Trace the final diagonal line to the 1-2 corner, which doesn't get covered otherwise.
-	raytracer.trace(viewloc[0], viewloc[1], viewSize[0], viewSize[1]);
-	
-	//We don't ever trace the center tile, just those around it.
-	grid[viewloc[0]][viewloc[1]] = loc;
-
-	std::ostringstream buffer;
-
-	for (int y = 0; y < viewSize[1]; y++) {
-		for (int x = 0; x < viewSize[0]; x++) {
-			//Print entity on tile.
-			for (auto entity : grid[x][y]->occupants) {
-				auto paint = entity->dispatch(Event::GetRendered{});
-				if (!paint.glyph) continue;
-				
-				buffer
-					<< paint.fgColor.fg() << grid[x][y]->bgColor.bg() //Just ignore background color for now, need a "none" or "alpha" variant.
-					<< reinterpret_cast<const char*>(paint.glyph)
-					<< seq::reset;
-				
-				goto nextTile;
-			}
-			
-			//If no entities, print tile itself.
-			buffer
-				<< grid[x][y]->fgColor.fg() << grid[x][y]->bgColor.bg()
-				<< reinterpret_cast<const char*>(grid[x][y]->glyph)
-				<< seq::reset;
-			
-			nextTile: continue;
-		}
-		buffer << "\n";
-	}
-	
-	//setwhatever(std::move(buffer))
-	target << buffer.str();
+	raytracer.trace(0, 0, 0, 0);
 }
 
 
 void View::render(std::unique_ptr<TextCellSubGrid> target) {
-	assert(loc); //If no location is defined, fail.
-	raytracer.setOriginTile(loc, rot);
+	std::cout << "render loc pre: " << grid.size() << "\n";
+	
+	grid.clear();
+	grid.reserve(50);
+	for (int x = 0; x < 50; x++) {
+		grid.emplace_back().assign(50, nullptr);
+	}
+	
+	std::cout << "render loc post 1: " << grid.size() << "\n";
 
-	int viewloc[2] = { viewSize[0] / 2, viewSize[1] / 2 };
+	raytracer.trace(0, 0, 0, 0);
+	
+	std::cout << "render loc post 2: " << grid.size() << "\n";
+}
 
-	//First, all our tiles are hidden.
-	for (int x = 0; x < viewSize[0]; x++) {
-		for (int y = 0; y < viewSize[1]; y++) {
-			grid[x][y] = &hiddenTile;
-		}
+
+void View::render() {
+	std::cout << "render loc pre: " << grid.size() << "\n";
+	
+	grid.clear();
+	grid.reserve(50);
+	for (int x = 0; x < 50; x++) {
+		grid.emplace_back().assign(50, nullptr);
 	}
 	
-	//TODO: Rework this so it traces the lines around true (integer) lines first, then the final true lines.
-	for (auto offset : std::vector<double>{0.25, 0.75, 0.5, 0}) {
-		for (double x = 0; x < viewSize[0]; x += viewSize[0] - 1) {
-			for (double y = 0; y < viewSize[1]-1; y++) {
-				raytracer.trace(viewloc[0], viewloc[1], x, y + offset);
-			}
-		}
-		for (double x = 0; x < viewSize[0]-1; x++) {
-			for (double y = 0; y < viewSize[1]; y += viewSize[1] - 1) {
-				raytracer.trace(viewloc[0], viewloc[1], x + offset, y);
-			}
-		}
-	}
+	std::cout << "render loc post 1: " << grid.size() << "\n";
+
+	raytracer.trace(0, 0, 0, 0);
 	
-	//Trace the final diagonal line to the 1-2 corner, which doesn't get covered otherwise.
-	raytracer.trace(viewloc[0], viewloc[1], viewSize[0], viewSize[1]);
-	
-	//We don't ever trace the center tile, just those around it.
-	grid[viewloc[0]][viewloc[1]] = loc;
-	
-	for (int y = 0; y < viewSize[1]; y++) {
-		for (int x = 0; x < viewSize[0]; x++) {
-			TextCell tile { (*target)[y][x] };
-			
-			//Print entity on tile.
-			for (auto entity : grid[x][y]->occupants) {
-				auto paint = entity->dispatch(Event::GetRendered{});
-				if (paint.glyph) {
-					tile.character = reinterpret_cast<const char*>(paint.glyph);
-					tile.background = grid[x][y]->bgColor; //Just ignore the background color of objects for now, need a "none" or "alpha" variant for colors.
-					tile.foreground = paint.fgColor;
-					
-					goto nextTile;
-				}
-			}
-			
-			//If there are no entities on the tile, print tile itself.
-			tile.character = reinterpret_cast<const char*>(grid[x][y]->glyph);
-			tile.background = grid[x][y]->bgColor;
-			tile.foreground = grid[x][y]->fgColor;
-			
-			nextTile: continue;
-		}
-	}
+	std::cout << "render loc post 2: " << grid.size() << "\n";
 }
 
 	
@@ -200,17 +120,6 @@ void View::moveCamera(int direction) {
 
 void View::move(int direction) {
 	moveCamera(direction);
-	
-	/*
-	static bool hasMoved = false;
-	if (!hasMoved) {
-		hasMoved = true;
-		std::cout << seq::clear; //TODO: Move this to somewhere more appropriate? We'll probably want to composit squares together for different viewpoints and text.
-	}
-	std::cout << "[0;0H"; //Move the cursor to 0,0. See previous comment.
-	
-	render(std::cout);
-	*/
 }
 
 void View::turn(int delta) {
