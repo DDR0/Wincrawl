@@ -141,7 +141,7 @@ void View::render(std::unique_ptr<TextCellSubGrid> target) {
 	
 	for (int y = 0; y < viewSize[1]; y++) {
 		for (int x = 0; x < viewSize[0]; x++) {
-			TextCell tile { (*target)[y][x] };
+			TextCell& tile { (*target)[y][x] };
 			
 			//Print entity on tile.
 			for (auto entity : grid[x][y]->occupants) {
