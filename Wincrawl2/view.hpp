@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <iostream>
 
 #include "ecs.hpp"
 #include "places.hpp"
@@ -18,7 +19,7 @@ class View {
 	inline static Tile emptyTile{};
 	
 	Raytracer raytracer{{
-		.onEachTile = [&](auto loc, auto x, auto y){
+		.onEachTile = [&](auto loc, auto x, auto y) {
 			grid[x][y] = loc ? loc : &emptyTile;
 		}
 	}};

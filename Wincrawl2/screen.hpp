@@ -75,8 +75,8 @@ protected:
 	class ViewPanel : public Panel {
 	public:
 		///Render the view to the view hole.
-		void render(OutputGrid* grid, View view) {
-			view.render(getTextCellSubGrid(
+		void render(OutputGrid* grid, View* view) {
+			view->render(getTextCellSubGrid(
 				grid, 
 				offset.x,
 				offset.y,
@@ -130,10 +130,10 @@ class MainScreen : public Screen {
 	Panel hintsPanel { true };
 	Panel promptPanel { true };
 	
-	View view;
+	View* view;
 
 public:
-	MainScreen(View& view, Triggers triggers) : Screen(triggers), view(view) {
+	MainScreen(View* view, Triggers triggers) : Screen(triggers), view(view) {
 		setSize(110, 25);
 	}
 	

@@ -85,7 +85,7 @@ int main() {
 		) },
 		
 		{ Screens::main, std::make_shared<MainScreen>(
-			view,
+			&view,
 			Triggers{{
 				//Linux arrow key sequences.
 				{ "[A", [&]{ view.move(0); } }, //up

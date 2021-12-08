@@ -100,9 +100,18 @@ void View::render(std::ostream& target) {
 void View::render(std::unique_ptr<TextCellSubGrid> target) {
 	assert(loc); //If no location is defined, fail.
 	raytracer.setOriginTile(loc, rot);
-
+	
+	viewSize[0] = (*target)[0].size(), viewSize[1] = target->size();
+	
 	int viewloc[2] = { viewSize[0] / 2, viewSize[1] / 2 };
-
+	
+	grid.clear();
+	grid.reserve(viewSize[0]);
+	for (int x = 0; x < viewSize[0]; x++) {
+		grid.emplace_back()
+			.assign(viewSize[1], nullptr);
+	}
+	
 	//First, all our tiles are hidden.
 	for (int x = 0; x < viewSize[0]; x++) {
 		for (int y = 0; y < viewSize[1]; y++) {
