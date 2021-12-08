@@ -23,6 +23,10 @@ class View {
 			grid[x][y] = loc ? loc : &emptyTile;
 		}
 	}};
+	
+	//Can't copy View without rebinding raytracer's callbacks here from the original object. It will crash horribly when the view is resized then.
+	View (View&) = delete;
+	View operator=(View&) = delete;
 
 public:
 	Tile* loc;
