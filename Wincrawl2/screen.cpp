@@ -84,7 +84,7 @@ void Screen::writeOutputToScreen() {
 			
 			if (lastForegroundColor != cell.foreground) {
 				lastForegroundColor = cell.foreground;
-				buf.append(cell.foreground.bg());
+				buf.append(cell.foreground.fg());
 			}
 			
 			if (lastAttributes != cell.attributes) {
