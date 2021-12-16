@@ -27,7 +27,7 @@ void runMainLoop(std::shared_ptr<Screen>& screen) {
 	int inputBuffered{ 0 };
 	char inputBuffer[maxInputBufferLength]{};
 
-	std::cout << "> ";
+	//std::cerr << "> ";
 	while (true) {
 		auto nextFrame = std::chrono::steady_clock::now() + 16ms;
 		int chr_ = chr.load();
@@ -41,25 +41,25 @@ void runMainLoop(std::shared_ptr<Screen>& screen) {
 				(chr_ >> 8 * (codepoints - 1)) & 0xFF;
 			
 			//Better output, just shows characters entered so far.
-			std::cout << "        \r> "; //maxInputBufferLength spaces
+			//std::cerr << "        \r> "; //maxInputBufferLength spaces
 			for (int i=0; inputBuffer[i]; i++) {
 				if (inputBuffer[i] < ' ') { //print symbol for control character so we can see it
 					std::string symbol{ "␀" };
 					symbol[2] += inputBuffer[i];
-					std::cout << symbol;
+					//std::cerr << symbol;
 				} else {
-					std::cout << inputBuffer[i];
+					//std::cerr << inputBuffer[i];
 				}
 			}
 			
 			//Debug output, includes hex and buffer.
-			//std::cout << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
+			//std::cerr << std::hex << chr_ << " " << (char)chr_ << " (" << reinterpret_cast<const char*>(inputBuffer) << ")" << "\n> ";
 			
 			if (!screen->triggers.run(inputBuffer)) {
 				inputBuffered = 0;
 				for (int i = 0; i < maxInputBufferLength; i++)
 					inputBuffer[i] = 0;
-				std::cout << "\r>         \r> "; //maxInputBufferLength spaces, clear any buffer there and reset cursor to where it should be.
+				//std::cerr << "\r>         \r> "; //maxInputBufferLength spaces, clear any buffer there and reset cursor to where it should be.
 			}
 			
 			
@@ -71,6 +71,7 @@ void runMainLoop(std::shared_ptr<Screen>& screen) {
 				chr = getInputCharAsync::next; //Next char.
 			}
 		}
+		screen->render();
 		std::this_thread::sleep_until(nextFrame);
 	}
 }

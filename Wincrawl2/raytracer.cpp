@@ -46,7 +46,7 @@ bool Raytracer::moveTo(int x, int y) { //Must be within the bounds of field.
 	//This function can only move one step at a time. It's more than complex enough.
 	assert(("Out of Range.", abs(currentDeltaX) + abs(currentDeltaY) <= 1));
 	
-	//std::cout << "moved to " << x << "×" << y << " (" << currentDeltaX << "×" << currentDeltaY << ")\n";
+	//std::cerr << "moved to " << x << "×" << y << " (" << currentDeltaX << "×" << currentDeltaY << ")\n";
 	int directionIndex;
 	if (currentDeltaY == +1) { directionIndex = 0; } else
 	if (currentDeltaX == +1) { directionIndex = 1; } else
@@ -60,11 +60,11 @@ bool Raytracer::moveTo(int x, int y) { //Must be within the bounds of field.
 		auto movement = loc->getNextTile(directionIndex);
 		loc = movement->tile();
 		lastDirectionIndex = dir = movement->dir();
-		//std::cout << "moved! " << directionIndex << "\n";
+		//std::cerr << "moved! " << directionIndex << "\n";
 	}
 	else {
 		//Enter the room in the relative direction from us.
-		//std::cout << "moved: " << directionIndex << " (from " << lastDirectionIndex << " is " << (directionIndex-lastDirectionIndex) << ")\n";
+		//std::cerr << "moved: " << directionIndex << " (from " << lastDirectionIndex << " is " << (directionIndex-lastDirectionIndex) << ")\n";
 		auto movement = loc->getNextTile(dir, directionIndex - lastDirectionIndex);
 		loc = movement->tile();
 		dir = movement->dir();
@@ -119,7 +119,7 @@ void Raytracer::trace(double sx, double sy, double dx, double dy) {
 	for (;step <= steps;) {
 		const int x{ static_cast<int>(round(sx + (dx-sx) * step/steps)) };
 		const int y{ static_cast<int>(round(sy + (dy-sy) * step/steps)) };
-		//std::cout << "Tracing to " << x << "/" << y << "\n";
+		//std::cerr << "Tracing to " << x << "/" << y << "\n";
 		
 		//Advance the raywalker to the tile. Stop couldn't move there.
 		oldloc = loc;

@@ -475,7 +475,7 @@ Plane::Plane(std::minstd_rand rng_, int numRooms)
 {
 
 	//auto choose10 { std::bind(std::uniform_int_distribution<int>{ 0, 10 }, rng) };
-	//std::cout << "rng says " << d(20) << "\n";
+	//std::cerr << "rng says " << d(20) << "\n";
 
 	tiles.reserve(512);
 	rooms.reserve(numRooms);

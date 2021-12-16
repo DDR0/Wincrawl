@@ -8,7 +8,7 @@ const auto iota { std::views::iota };
 
 std::unique_ptr<TextCellSubGrid> getTextCellSubGrid(
 	TextCellGrid* grid, size_t x1, size_t y1, size_t x2, size_t y2) {
-	//std::cout << x1 << " " << y1 << " " << x2 << " " << y2 << " in " << grid->size() << " " << (*grid)[0].size() << "\n"; 
+	//std::cerr << x1 << " " << y1 << " " << x2 << " " << y2 << " in " << grid->size() << " " << (*grid)[0].size() << "\n"; 
 	assert(x1 <= x2);
 	assert(y1 <= y2);
 	assert(y2 <= grid->size());

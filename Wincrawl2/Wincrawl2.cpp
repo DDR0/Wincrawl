@@ -27,18 +27,18 @@ int main() {
 		return 255;
 	};
 
-	cout << "⌛ Generating...\n";
+	cerr << "⌛ Generating...\n";
 
 	Tile tile0{};
-	cout << "tiles: " << tile0 << "\n";
+	cerr << "tiles: " << tile0 << "\n";
 
 	Tile tile1{};
 	tile0.link(&tile1, 1, 3);
-	cout << "tiles: " << tile0 << " " << tile1 << "\n";
+	cerr << "tiles: " << tile0 << " " << tile1 << "\n";
 
 	Tile tile2{};
 	tile0.insert(&tile2, 1, 2);
-	cout << "tiles: " << tile0 << " " << tile1 << " " << tile2 << "\n";
+	cerr << "tiles: " << tile0 << " " << tile1 << " " << tile2 << "\n";
 	
 	std::minstd_rand rng { 6 }; //Note: Can call .seed(x) if needed. Does not return same on all platforms.
 	(void) rng(); //Advance one step, initial value seems to be the seed otherwise. Cast to void to avoid VS unused value warning.
@@ -58,14 +58,14 @@ int main() {
 	
 
 	View view{ 23, 23, plane0.getStartingTile() };
-	//view.render(cout);
+	//view.render(cerr);
 	
 	auto aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
-	cout << aColor << "\n";
+	cerr << aColor << "\n";
 	auto bColor = Color(0x6d83cfff);
-	cout << bColor << "\n";
+	cerr << bColor << "\n";
 	auto cColor = Color(0x6d83cfff);
-	cout << cColor << " = " << (bColor == cColor) << "\n";
+	cerr << cColor << " = " << (bColor == cColor) << "\n";
 	
 	
 	//Let's create some screens to interact with the world through.
@@ -73,7 +73,7 @@ int main() {
 	enum class Screens { title, main, death, credits, debug };
 	auto switchScreen = [&](std::shared_ptr<Screen> nextScreen) {
 		currentScreen = nextScreen;
-		nextScreen->render();
+		nextScreen->setSize(80, 25);
 	};
 	const std::unordered_map<const Screens, const std::shared_ptr<Screen>, LiteralHash> screens {
 		{ Screens::title, std::make_shared<TitleScreen>(
@@ -139,19 +139,18 @@ int main() {
 		{ "n", [&]{ return; } },
 		{ "x", []{ stopMainLoop = true; } },
 	}});
-	screen.render();
 	
 	
 	
 	
 	
-	cout << "Arrow keys to move, alt left/right to turn, q to quit.\n";
+	cerr << "Arrow keys to move, alt left/right to turn, q to quit.\n";
 	runMainLoop(currentScreen);
 	
 	if (not tearDownConsole()) {
 		cerr << "Error: Could not reset console.\n";
 	}
 		
-	cout << "Good-bye.\n";
+	cerr << "Good-bye.\n";
 	return 0;
 }

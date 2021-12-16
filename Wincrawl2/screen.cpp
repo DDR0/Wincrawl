@@ -7,10 +7,11 @@
 #include "screen.hpp"
 #include "seq.hpp"
 
+constexpr auto iota { std::views::iota };
+const Color neutralForeground = Color(0xB0BBBBFF);
+const Color neutralBackground = Color(0x444644FF);
 
-
-const auto iota { std::views::iota };
-
+bool Screen::dirty{ true };
 std::vector<std::vector<Screen::Cell>> Screen::output[2] {
 	{ Screen::size.y, std::vector<Screen::Cell>{ Screen::size.x } },
 	{ Screen::size.y, std::vector<Screen::Cell>{ Screen::size.x } },
@@ -46,19 +47,23 @@ void Screen::writeOutputToScreen() {
 		dirty || (newGrid.size() == oldGrid.size() && newGrid[0].size() == oldGrid[0].size() && newGrid[1].size() == oldGrid[1].size())
 	));
 	
+	////////////////// hack, patching render mode is broken
+	dirty = true;
+	////////////////// hack
+	
 	static Color lastBackgroundColor { 0x00000000 };
 	static Color lastForegroundColor { 0xFFFFFF00 };
 	static uint8_t lastAttributes {};
 	bool didSkip{ false };
 	
+	//Reset cursor.
+	buf.assign(seq::moveToOrigin);
 	if (dirty) {
 		lastAttributes = 0;
-		buf.assign(seq::reset); //resets bold, underline, etc. attributes
-		buf.append(lastBackgroundColor.bg());
-		buf.append(lastForegroundColor.fg());
-	} else {
-		buf.assign(seq::moveToOrigin);
+		buf.append(seq::reset); //resets bold, underline, etc. attributes
 	}
+	buf.append(lastBackgroundColor.bg());
+	buf.append(lastForegroundColor.fg());
 
 	for (auto y : iota(size_t(0), newGrid.size())) {
 		for (auto x : iota(size_t(0), newGrid[0].size())) {
@@ -101,7 +106,7 @@ void Screen::writeOutputToScreen() {
 		buf.append("\n");
 	}
 	
-	std::cout << buf;
+	std::cout << buf << neutralForeground.fg() << neutralBackground.bg();
 	
 	//We want to compare against what we last wrote to screen, so use the other buffer for the new stuff now.
 	outputBuffer ^= 1;

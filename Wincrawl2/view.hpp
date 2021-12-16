@@ -34,10 +34,7 @@ public:
 
 	View(uint8_t width, uint8_t height, Tile* pointOfView);
 
-	void render(std::ostream& target);
 	void render(std::unique_ptr<TextCellSubGrid> target);
-	
-	void moveCamera(int direction);
 	
 	void move(int direction);
 	void turn(int delta);

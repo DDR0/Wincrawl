@@ -22,7 +22,7 @@ protected:
 	struct Size { uint_fast16_t x; uint_fast16_t y; };
 	static inline Size size { 80, 25 };
 	
-	bool dirty{ true }; //Ideally, only used when the terminal has been resized. Set on screen transition so there's a way back from bad states anyway.
+	static bool dirty; //Ideally, only used when the terminal has been resized. Set on screen transition so there's a way back from bad states anyway.
 	
 	typedef TextCell Cell;
 	typedef TextCellGrid OutputGrid;
@@ -154,11 +154,11 @@ public:
 	inline void setSize(size_t x, size_t y) override {
 		Screen::setSize(x, y);
 		
-		int gutter = 1;
-		int promptHeight = 2;
-		int interiorWidth = x-gutter*2; int interiorHeight = y-gutter*2;
-		int viewWidth = interiorWidth*2/3;
-		int viewHeight = interiorHeight/2 - promptHeight/2;
+		const int gutter = 1;
+		const int promptHeight = 2;
+		const int interiorWidth = x-gutter*2; int interiorHeight = y-gutter*2;
+		const int viewWidth = interiorWidth*1/3;
+		const int viewHeight = interiorHeight*1/3 < 4 ? interiorHeight - 4 : interiorHeight*2/3;
 		
 		viewPanel.setSize(gutter, gutter, viewWidth, viewHeight);
 		memoryPanel.setSize(gutter+viewWidth+gutter, gutter, interiorWidth-viewWidth-gutter, viewHeight);

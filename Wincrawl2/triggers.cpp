@@ -15,7 +15,7 @@ bool Triggers::run(const char* command) {
 	for (auto trigger : this->triggers) {
 		//Command should be fully equal to run the cb - the full match is needed to absorb all of an escape sequence which could be unique by the second character.
 		if (!strcmp(trigger.seq, command)) {
-			std::cout << "\n"; //done input, advance to new line - this probably shouldn't be here, we should return the trigger that matched instead.
+			std::cerr << "\n"; //done input, advance to new line - this probably shouldn't be here, we should return the trigger that matched instead.
 			trigger.callback();
 			return false;
 		}
