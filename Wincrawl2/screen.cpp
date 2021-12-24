@@ -145,7 +145,7 @@ void Screen::Panel::render(Screen::OutputGrid* buffer) {
 	//Read text in to grid, placing each letter appropriately so the text forms a diagonal.
 	for (size_t y : iota(position.y, position.y + size.y)) {
 		for (size_t x : iota(position.x, position.x + size.x)) {
-			(*buffer)[y][x].character = &panelText[((x*panelTextWidth)+(y*stride*panelTextWidth))%(panelTextLength*panelTextWidth)];
+			(*buffer)[y][x].character = &panelText[(((x-position.x)*panelTextWidth)+((y-position.y)*stride*panelTextWidth))%(panelTextLength*panelTextWidth)];
 			(*buffer)[y][x].foreground = neutralForeground;
 			(*buffer)[y][x].background = neutralBackground;
 			(*buffer)[y][x].attributes = 0;
