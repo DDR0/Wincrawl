@@ -52,8 +52,6 @@ void Screen::writeOutputToScreen() {
 	const OutputGrid& newGrid = output[outputBuffer^0];
 	const OutputGrid& oldGrid = output[outputBuffer^1];
 
-	cerr << "Rendering " << activeOutputGrid() << " to screen.\n";
-
 	assert((
 		"Grid resized but not marked dirty.",
 		dirty || (newGrid.size() == oldGrid.size() && newGrid[0].size() == oldGrid[0].size() && newGrid[1].size() == oldGrid[1].size())
@@ -125,6 +123,38 @@ void Screen::writeOutputToScreen() {
 
 
 
+void Screen::Panel::render(Screen::OutputGrid* buffer) {
+	assert((
+		"Error: Invalid screen size of < 1 character.",
+		size.x && size.y
+	));
+
+	assert((
+		"Incorrect grid size, `position + size <= grid.size()`.\ngg ez",
+		(*buffer).size() >= static_cast<size_t>(position.y + size.y) &&
+		(*buffer)[0].size() >= static_cast<size_t>(position.x + size.x)
+	));
+
+	//"Static Panel", twice, offset, interleaved; further interleaved with spaces; with each character null-terminated.
+	const char* panelText = "S\0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0t\0 \0 \0 \0 \0 \0P\0 \0 \0 \0 \0 \0a\0 \0 \0 \0 \0 \0a\0 \0 \0 \0 \0 \0t\0 \0 \0 \0 \0 \0n\0 \0 \0 \0 \0 \0i\0 \0 \0 \0 \0 \0e\0 \0 \0 \0 \0 \0c\0 \0 \0 \0 \0 \0l\0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0P\0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0a\0 \0 \0 \0 \0 \0S\0 \0 \0 \0 \0 \0n\0 \0 \0 \0 \0 \0t\0 \0 \0 \0 \0 \0e\0 \0 \0 \0 \0 \0a\0 \0 \0 \0 \0 \0l\0 \0 \0 \0 \0 \0t\0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0i\0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0c\0 \0 \0 \0 \0 ";
+	const size_t panelTextLength = 336 / 2; //Length of panelText, not null-terminated so just hard-coded.
+	const size_t panelTextWidth = 2;
+	const size_t period = 12;
+	const size_t stride = period - 1;
+
+	//Read text in to grid, placing each letter appropriately so the text forms a diagonal.
+	for (size_t y : iota(position.y, position.y + size.y)) {
+		for (size_t x : iota(position.x, position.x + size.x)) {
+			(*buffer)[y][x].character = &panelText[((x*panelTextWidth)+(y*stride*panelTextWidth))%(panelTextLength*panelTextWidth)];
+			(*buffer)[y][x].foreground = neutralForeground;
+			(*buffer)[y][x].background = neutralBackground;
+			(*buffer)[y][x].attributes = 0;
+		}
+	}
+};
+
+
+
 void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 	//Center the block of text in the panel.
 	size_t height{ text.size() };
@@ -139,19 +169,19 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 	};
 	
 	assert((
-		"Error: Invalid screen size of < 1 character. Skipping render.",
+		"Error: Invalid screen size of < 1 character.",
 		size.x && size.y
 	));
 	
 	assert((
-		"Incorrect grid size, `offset + size <= grid.size()`.\ngg ez",
-		(*buffer).size() >= static_cast<size_t>(offset.y + size.y) && 
-		(*buffer)[0].size() >= static_cast<size_t>(offset.x + size.x)
+		"Incorrect grid size, `position + size <= grid.size()`.\ngg ez",
+		(*buffer).size() >= static_cast<size_t>(position.y + size.y) && 
+		(*buffer)[0].size() >= static_cast<size_t>(position.x + size.x)
 	));
 	
-	//Flood fill empty. Overdrawn later but oh well.
-	for (size_t y : iota(offset.y, offset.y + size.y)) {
-		for (size_t x : iota(offset.x, offset.x + size.x)) {
+	//Flood fill empty. Overdrawn later.
+	for (size_t y : iota(position.y, position.y + size.y)) {
+		for (size_t x : iota(position.x, position.x + size.x)) {
 			(*buffer)[y][x].character = " ";
 			(*buffer)[y][x].foreground = neutralForeground;
 			(*buffer)[y][x].background = neutralBackground;
@@ -168,9 +198,9 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 	for (size_t y : iota((size_t) 0, height)) {
 		if (text[y].length) {
 			size_t x = 0;
-			(*buffer)[y+offset.y+topLeft.y][x+offset.x+topLeft.x].character = text[y].content;
+			(*buffer)[y+position.y+topLeft.y][x+position.x+topLeft.x].character = text[y].content;
 			while (++x < text[y].length) { //Can't use text[y].length, it's the visual width and not the codepoint count.
-				(*buffer)[y+offset.y+topLeft.y][x+offset.x+topLeft.x].character = "";//text[y].content[x]; //This needs to be transmogrified into individual, cut-up strings. >_<
+				(*buffer)[y+position.y+topLeft.y][x+position.x+topLeft.x].character = "";//text[y].content[x]; //This needs to be transmogrified into individual, cut-up strings. >_<
 			}
 		}
 	}

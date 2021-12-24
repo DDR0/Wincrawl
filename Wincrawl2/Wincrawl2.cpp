@@ -136,12 +136,9 @@ int main() {
 		) },
 	};
 
-	//switchScreen(screens.at(Screens::title));
-	//currentScreen->render();
 	switchScreen(screens.at(Screens::main));
 	//currentScreen->render();
 	//return 0;
-	//switchScreen(screens.at(Screens::title));
 	
 	
 	

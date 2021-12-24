@@ -61,7 +61,7 @@ protected:
 		struct xywhRect { int x; int y; int w; int h; };
 		inline xywhRect* rect() { return reinterpret_cast<xywhRect*>(&position); }
 		
-		inline void render(OutputGrid*) { };
+		void render(OutputGrid*);
 	};
 	
 	class ScrollablePanel : public Panel {
@@ -71,12 +71,12 @@ protected:
 	
 	// TODO: Make this support non-zero positions.
 	class CenteredTextPanel : public Panel {
-		struct TextLine{ const size_t length; const char* content; };
+		struct TextLine { const size_t length; const char* content; };
 		typedef std::vector<TextLine> TextBlock;
-	
+
 	public:
 		const TextBlock text;
-		inline CenteredTextPanel(const TextBlock text) : Panel{false}, text{text} {};
+		inline CenteredTextPanel(const TextBlock text) : Panel{ false }, text{ text } {};
 		void render(OutputGrid*);
 	};
 	
@@ -123,17 +123,14 @@ class TitleScreen : public Screen {
 
 public:
 	TitleScreen(Triggers triggers) : Screen(triggers) {
-		cerr << "TitleScreen constructed.\n";
 	}
 	
 	inline void setSize(size_t x, size_t y) override {
-		cerr << "TitleScreen resized.\n";
 		Screen::setSize(x, y);
 		text.setSize(0, 0, x, y);
 	}
 	
 	inline void render() override {
-		cerr << "TitleScreen rendered to " << activeOutputGrid() << ".\n";
 		text.render(activeOutputGrid());
 		Screen::render();
 	}
