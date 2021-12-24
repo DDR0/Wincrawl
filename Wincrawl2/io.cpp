@@ -8,9 +8,15 @@
 #ifdef _MSC_VER
 
 	#include <windows.h>
+	#include <debugapi.h>
 	#include <conio.h>
-
+	
 	bool setUpConsole() {
+		//Enable UTF-8 debugging in VS output panel as per https://docs.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-outputdebugstringa.
+		DEBUG_EVENT _evt{};
+		WaitForDebugEventEx(&_evt, 1);
+
+		//Set the text console itself to UTF-8.
 		return SetConsoleCP(CP_UTF8) & SetConsoleOutputCP(CP_UTF8);
 	}
 
