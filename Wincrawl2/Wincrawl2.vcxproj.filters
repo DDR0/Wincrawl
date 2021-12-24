@@ -54,49 +54,55 @@
     <ClCompile Include="textbits.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="color.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hsluv.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="io.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="main_loop.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="places.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="seq.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ecs.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="triggers.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="view.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="vector_tools.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="raytracer.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="screen.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hashMapShimsForVisualStudio.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="textbits.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="debug.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ecs.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="color.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="io.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hsluv.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hashMapShimsForVisualStudio.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main_loop.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="places.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="raytracer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="triggers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="seq.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

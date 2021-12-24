@@ -1,4 +1,4 @@
-#include <cassert>
+﻿#include <cassert>
 #include <sstream>
 #include <string>
 #include <ranges>
@@ -8,8 +8,11 @@
 #include "seq.hpp"
 
 constexpr auto iota { std::views::iota };
-const Color neutralForeground = Color(0xB0BBBBFF);
-const Color neutralBackground = Color(0x444644FF);
+const Color black = Color(0x000000FF);
+const Color white = Color(0xFFFFFFFF);
+const Color warning = Color(6, 84, 50);
+const Color neutralForeground = Color(0xDDDDDDFF);
+const Color neutralBackground = Color(0x222222FF);
 
 bool Screen::dirty{ true };
 std::vector<std::vector<Screen::Cell>> Screen::output[2] {
@@ -29,6 +32,13 @@ void Screen::setSize(size_t x, size_t y) {
 			buffer.resize(y);
 			for (auto& line : buffer) {
 				line.resize(x);
+#ifndef NDEBUG
+				for (auto& cell : line) {
+					cell.character = "X";
+					cell.background = warning;
+					cell.foreground = white;
+				}
+#endif
 			}
 		}
 	}
@@ -39,17 +49,15 @@ void Screen::writeOutputToScreen() {
 	constexpr size_t expectedCharsPerGlyph = 25; //It takes 13 characters to set the foreground, another 13 for the background, and one for the character itself. Plus anything else to move the cursor around.
 	buf.reserve(expectedCharsPerGlyph * Screen::size.y * Screen::size.x);
 	
-	OutputGrid newGrid = output[outputBuffer^0];
-	OutputGrid oldGrid = output[outputBuffer^1];
+	const OutputGrid& newGrid = output[outputBuffer^0];
+	const OutputGrid& oldGrid = output[outputBuffer^1];
+
+	cerr << "Rendering " << activeOutputGrid() << " to screen.\n";
 
 	assert((
 		"Grid resized but not marked dirty.",
 		dirty || (newGrid.size() == oldGrid.size() && newGrid[0].size() == oldGrid[0].size() && newGrid[1].size() == oldGrid[1].size())
 	));
-	
-	////////////////// hack, patching render mode is broken
-	dirty = true;
-	////////////////// hack
 	
 	static Color lastBackgroundColor { 0x00000000 };
 	static Color lastForegroundColor { 0xFFFFFF00 };
@@ -78,8 +86,8 @@ void Screen::writeOutputToScreen() {
 			if (didSkip) {
 				didSkip = false;
 				buf.append("\033["); //Escape sequence; move cursor to current row/column.
-				buf.append(std::to_string(y)); buf.append(";");
-				buf.append(std::to_string(x)); buf.append("H");
+				buf.append(std::to_string(y+1)); buf.append(";");
+				buf.append(std::to_string(x+1)); buf.append("H");
 			}
 			
 			if (lastBackgroundColor != cell.background) {
@@ -125,7 +133,6 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 		width = std::max(width, line.length);
 	};
 	
-	
 	const Offset topLeft {
 		size.x/2 - static_cast<int>(width )/2,
 		size.y/2 - static_cast<int>(height)/2,
@@ -146,6 +153,9 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 	for (size_t y : iota(offset.y, offset.y + size.y)) {
 		for (size_t x : iota(offset.x, offset.x + size.x)) {
 			(*buffer)[y][x].character = " ";
+			(*buffer)[y][x].foreground = neutralForeground;
+			(*buffer)[y][x].background = neutralBackground;
+			(*buffer)[y][x].attributes = 0;
 		}
 	}
 	
@@ -163,5 +173,82 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 				(*buffer)[y+offset.y+topLeft.y][x+offset.x+topLeft.x].character = "";//text[y].content[x]; //This needs to be transmogrified into individual, cut-up strings. >_<
 			}
 		}
+	}
+}
+
+/**
+ * Screen Layout
+ * o-----------o-------o
+ * |1↔       0↕|1↔   0↕|
+ * |           |       |
+ * | viewPanel | memry |
+ * |           |       |
+ * |           |       |
+ * o-----------o-------o
+ * |1↔  hintsPanel   1↕|
+ * |1↔  promptPanel  0↕|
+ * o-------------------o
+ * ✥: Stretchiness ratio, like CSS `flex-grow`.
+ */
+void MainScreen::setSize(size_t x, size_t y) {
+	Screen::setSize(x, y);
+
+	const int gutter = 1;
+	const int promptHeight = 2;
+	const int interiorWidth = x - gutter * 2; int interiorHeight = y - gutter * 2;
+	const int viewWidth = interiorWidth * 1 / 3;
+	const int viewHeight = interiorHeight * 1 / 3 < 4 ? interiorHeight - 4 : interiorHeight * 2 / 3;
+
+	viewPanel.setSize(gutter, gutter, viewWidth, viewHeight);
+	memoryPanel.setSize(gutter + viewWidth + gutter, gutter, interiorWidth - viewWidth - gutter, viewHeight);
+	hintsPanel.setSize(gutter, gutter + viewHeight + gutter, interiorWidth, interiorHeight - viewHeight - gutter - promptHeight);
+	promptPanel.setSize(gutter, gutter + viewHeight + gutter, interiorWidth, promptHeight);
+}
+
+/**
+ * Draw the main view, so we can see the world we're in.
+ */
+void MainScreen::render() {
+	auto out = activeOutputGrid();
+
+	renderBorders(); //Do this first so other panels can overwrite it, "explode" out of their frame.
+	memoryPanel.render(out);
+	hintsPanel.render(out);
+	promptPanel.render(out);
+	viewPanel.render(out, view); //Most out-of-bounds panel.
+
+	Screen::render();
+}
+
+/**
+ * Draw the borders of the main screen.
+ */
+void MainScreen::renderBorders()
+{
+	constexpr uint_fast16_t zero{ 0 };
+
+	for (auto y : iota(zero + 1, size.y - 1)) {
+		writeCell(neutralForeground, neutralBackground, "|", y, 0);
+		writeCell(neutralForeground, neutralBackground, "|", y, size.x - 1);
+	}
+
+	writeCell(neutralForeground, neutralBackground, "O", 0, 0);
+	writeCell(neutralForeground, neutralBackground, "O", 0, size.x - 1);
+	writeCell(neutralForeground, neutralBackground, "O", viewPanel.rect()->h + 1, 0);
+	writeCell(neutralForeground, neutralBackground, "O", viewPanel.rect()->h + 1, size.x - 1);
+	writeCell(neutralForeground, neutralBackground, "O", size.y - 1, size.x - 1);
+	writeCell(neutralForeground, neutralBackground, "O", size.y - 1, 0);
+
+	for (auto x : iota(zero + 1, size.x - 1)) {
+		writeCell(neutralForeground, neutralBackground, "-", 0, x);
+		writeCell(neutralForeground, neutralBackground, "-", viewPanel.rect()->h + 1, x);
+		writeCell(neutralForeground, neutralBackground, "-", size.y - 1, x);
+	}
+
+	writeCell(neutralForeground, neutralBackground, "O", 0, viewPanel.rect()->w + 1);
+	writeCell(neutralForeground, neutralBackground, "O", viewPanel.rect()->h + 1, viewPanel.rect()->w + 1);
+
+	for (auto y : iota(viewPanel.rect()->y, viewPanel.rect()->y + viewPanel.rect()->h)) {
+		writeCell(neutralForeground, neutralBackground, "|", y, viewPanel.rect()->w + 1);
 	}
 }

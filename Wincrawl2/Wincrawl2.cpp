@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "color.hpp"
+#include "debug.hpp" 
 #include "ecs.hpp"
 #include "ecs.hpp"
 #include "hashMapShimsForVisualStudio.hpp"
@@ -19,8 +20,9 @@
 
 
 
+Debug cerr{};
+
 int main() {
-	using namespace std;
 
 	if (not setUpConsole()) {
 		cerr << "Error: Could not set console to UTF8 mode.\n";
@@ -52,15 +54,15 @@ int main() {
 		avatar->add<Existance>("@", 0xDDA24EFF);
 		avatar->add<Fragility>(10);
 		auto attack = TakeDamage(avatar->dispatch(DealDamage{}));
-		std::cerr << "Attack amount: " << attack.amount << "\n";
+		cerr << "Attack amount: " << attack.amount << "\n";
 		plane0.getStartingTile()->occupants.push_back(avatar);
 	}
 	
 
 	View view{ 23, 23, plane0.getStartingTile() };
-	//view.render(cerr);
 	
-	auto aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
+
+	Color aColor = Color(Color::RGB(0xe6, 0x55, 0x51));
 	cerr << aColor << "\n";
 	auto bColor = Color(0x6d83cfff);
 	cerr << bColor << "\n";
@@ -73,7 +75,7 @@ int main() {
 	enum class Screens { title, main, death, credits, debug };
 	auto switchScreen = [&](std::shared_ptr<Screen> nextScreen) {
 		currentScreen = nextScreen;
-		nextScreen->setSize(80, 25);
+		currentScreen->setSize(80, 25);
 	};
 	const std::unordered_map<const Screens, const std::shared_ptr<Screen>, LiteralHash> screens {
 		{ Screens::title, std::make_shared<TitleScreen>(
@@ -133,13 +135,13 @@ int main() {
 			}}
 		) },
 	};
-	currentScreen = { screens.at(Screens::title) };
-	
-	auto screen = TitleScreen({{
-		{ "n", [&]{ return; } },
-		{ "x", []{ stopMainLoop = true; } },
-	}});
-	
+
+	//switchScreen(screens.at(Screens::title));
+	//currentScreen->render();
+	switchScreen(screens.at(Screens::main));
+	//currentScreen->render();
+	//return 0;
+	//switchScreen(screens.at(Screens::title));
 	
 	
 	

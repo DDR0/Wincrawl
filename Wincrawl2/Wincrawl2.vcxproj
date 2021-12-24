@@ -45,7 +45,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <EnableASAN>true</EnableASAN>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -177,6 +177,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="color.cpp" />
+    <ClCompile Include="debug.cpp" />
     <ClCompile Include="hsluv.cpp" />
     <ClCompile Include="io.cpp" />
     <ClCompile Include="main_loop.cpp" />
@@ -195,6 +196,7 @@
   <ItemGroup>
     <ClInclude Include="color.hpp" />
     <ClInclude Include="hashMapShimsForVisualStudio.hpp" />
+    <ClInclude Include="debug.hpp" />
     <ClInclude Include="textbits.hpp" />
     <ClInclude Include="hsluv.hpp" />
     <ClInclude Include="io.hpp" />

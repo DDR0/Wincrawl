@@ -7,10 +7,13 @@
 #include <vector>
 
 #include "color.hpp"
+#include "debug.hpp"
 #include "ecs.hpp"
 #include "textbits.hpp"
 #include "triggers.hpp"
 #include "view.hpp"
+
+
 
 /**
  * Screens are the different views of our application. Each screen has at least
@@ -33,25 +36,30 @@ protected:
 private:
 	void writeOutputToScreen();
 protected:
-	
+	Debug cerr{};
+
 	class Panel {
 	protected:
-		struct Size { int x; int y; };
+		Debug cerr{};
+
 		struct Offset { int x; int y; };
+		struct Size { int x; int y; };
 		bool autowrap {}; ///< Wrap text at the spaces.
 	
-		Size size {}; ///< Size of the panel itself.
 		Offset position {}; ///< Offset of the panel.
+		Size size{}; ///< Size of the panel itself. Must come after position, for getSize.
 		Offset offset {}; ///< Scroll the contents of the panel by x/y, starting from the bottom-left.
 	
 	public:
 		inline Panel(bool autowrap = true) : autowrap(autowrap) {}
 		inline void setAutowrap(bool enabled) { autowrap = enabled; }
-		inline void setSize(int w, int h) { size.x = w, size.y = h; } //Must be called during initialization.
+		inline void setSize(int w, int h) { size.x = w, size.y = h; }
 		inline void setSize(int x, int y, int w, int h) {
 			position.x = x, position.y = y;
 			size.x = w, size.y = h;
-		} 
+		}
+		struct xywhRect { int x; int y; int w; int h; };
+		inline xywhRect* rect() { return reinterpret_cast<xywhRect*>(&position); }
 		
 		inline void render(OutputGrid*) { };
 	};
@@ -78,13 +86,22 @@ protected:
 		void render(OutputGrid* grid, View* view) {
 			view->render(getTextCellSubGrid(
 				grid, 
-				offset.x,
-				offset.y,
-				offset.x + size.x,
-				offset.y + size.y
+				position.x,
+				position.y,
+				position.x + size.x,
+				position.y + size.y
 			));
 		};
 	};
+
+	inline Screen& writeCell(Color fg, Color bg, const char* character, size_t y, size_t x, int attrs=0) {
+		Cell& cell = (*activeOutputGrid())[y][x];
+		cell.character = character;
+		cell.background = bg;
+		cell.foreground = fg;
+		cell.attributes = attrs;
+		return (*this);
+	}
 	
 public:
 	Triggers triggers {};
@@ -106,18 +123,17 @@ class TitleScreen : public Screen {
 
 public:
 	TitleScreen(Triggers triggers) : Screen(triggers) {
-		std::cerr << "TitleScreen constructed.\n";
-		setSize(110, 25);
+		cerr << "TitleScreen constructed.\n";
 	}
 	
 	inline void setSize(size_t x, size_t y) override {
-		std::cerr << "TitleScreen resized.\n";
+		cerr << "TitleScreen resized.\n";
 		Screen::setSize(x, y);
 		text.setSize(0, 0, x, y);
 	}
 	
 	inline void render() override {
-		std::cerr << "TitleScreen rendered.\n";
+		cerr << "TitleScreen rendered to " << activeOutputGrid() << ".\n";
 		text.render(activeOutputGrid());
 		Screen::render();
 	}
@@ -132,49 +148,14 @@ class MainScreen : public Screen {
 	
 	View* view;
 
+	void renderBorders();
+
 public:
 	MainScreen(View* view, Triggers triggers) : Screen(triggers), view(view) {
-		setSize(110, 25);
 	}
 	
-	/**
-	 * Screen Layout
-	 * o-----------o-------o
-	 * |1↔       0↕|1↔   0↕|
-	 * |           |       |
-	 * | viewPanel | memry |
-	 * |           |       |
-	 * |           |       |
-	 * o-----------o-------o
-	 * |1↔  hintsPanel   1↕|
-	 * |1↔  promptPanel  0↕|
-	 * o-------------------o
-	 * ✥: Stretchiness ratio, like CSS `flex-grow`.
-	 */
-	inline void setSize(size_t x, size_t y) override {
-		Screen::setSize(x, y);
-		
-		const int gutter = 1;
-		const int promptHeight = 2;
-		const int interiorWidth = x-gutter*2; int interiorHeight = y-gutter*2;
-		const int viewWidth = interiorWidth*1/3;
-		const int viewHeight = interiorHeight*1/3 < 4 ? interiorHeight - 4 : interiorHeight*2/3;
-		
-		viewPanel.setSize(gutter, gutter, viewWidth, viewHeight);
-		memoryPanel.setSize(gutter+viewWidth+gutter, gutter, interiorWidth-viewWidth-gutter, viewHeight);
-		hintsPanel.setSize(gutter, gutter+viewHeight+gutter, interiorWidth, interiorHeight-viewHeight-gutter-promptHeight);
-		promptPanel.setSize(gutter, gutter+viewHeight+gutter, interiorWidth, promptHeight);
-	}
-	
-	inline void render() override {
-		//Draw the main view, so we can see the world we're in.
-		viewPanel.render(activeOutputGrid(), view);
-		memoryPanel.render(activeOutputGrid());
-		hintsPanel.render(activeOutputGrid());
-		promptPanel.render(activeOutputGrid());
-		
-		Screen::render();
-	}
+	void setSize(size_t x, size_t y) override;
+	void render() override;
 };
 
 class DeathScreen : public Screen {
