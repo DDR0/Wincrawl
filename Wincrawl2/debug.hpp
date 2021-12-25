@@ -14,7 +14,7 @@
 
 	public:
 		template <class T>
-		Debug& operator<<(T&& x) {
+		inline Debug& operator<<(T&& x) {
 			#ifndef NDEBUG
 				std::stringstream ss{};
 				ss << std::forward<T>(x);
@@ -25,7 +25,7 @@
 		};
 
 		template <class T>
-		Debug& operator<<(std::ostream& (*manip)(std::ostream&)) {
+		inline Debug& operator<<(std::ostream& (*manip)(std::ostream&)) {
 			#ifndef NDEBUG
 				std::stringstream ss{};
 				ss << manip;
@@ -41,7 +41,7 @@
 	class Debug : public std::stringstream {
 	public:
 		template <class T>
-		Debug& operator<<(T&& x) {
+		inline Debug& operator<<(T&& x) {
 			#ifndef NDEBUG
 				std::cerr << std::forward<T>(x);
 			#endif
@@ -49,7 +49,7 @@
 		}
 
 		template <class T>
-		Debug& operator<<(std::ostream& (*manip)(std::ostream&)) {
+		inline Debug& operator<<(std::ostream& (*manip)(std::ostream&)) {
 			#ifndef NDEBUG
 				std::cerr << manip;
 			#endif

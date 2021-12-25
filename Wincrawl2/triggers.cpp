@@ -12,10 +12,9 @@ void Triggers::add(const char* seq, const std::function<void()> callback) {
 bool Triggers::run(const char* command) {
 	int commandMatchesTriggers{ false };
 
-	for (auto trigger : this->triggers) {
+	for (auto& trigger : this->triggers) {
 		//Command should be fully equal to run the cb - the full match is needed to absorb all of an escape sequence which could be unique by the second character.
 		if (!strcmp(trigger.seq, command)) {
-			std::cerr << "\n"; //done input, advance to new line - this probably shouldn't be here, we should return the trigger that matched instead.
 			trigger.callback();
 			return false;
 		}

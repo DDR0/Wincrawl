@@ -102,8 +102,8 @@ int main() {
 				{ "\xE0P", [&]{ view.move(2); } }, //down
 				{ "\xE0M", [&]{ view.move(1); } }, //left
 				{ "\xE0K", [&]{ view.move(3); } }, //right   \xE0 = à?
-				//{ "???", [&]{ view.turn(+1); } }, //cw     TODO: FILL THIS IN
-				//{ "???", [&]{ view.turn(-1); } }, //ccw
+				{ "\x01\0x155", [&]{ view.turn(+1); } }, //cw - note, this sequence actually starts with a 0, but that doesn't work so well with string processing so we just add 1 to it.
+				{ "\x01\0x157", [&]{ view.turn(-1); } }, //ccw
 				
 				//Other key sequences.
 				{ "q", []{ stopMainLoop = true; } }, 

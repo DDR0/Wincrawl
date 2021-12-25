@@ -9,8 +9,8 @@
 /// Holds characters with attributes for printing, colour, bold, and underline.
 struct TextCell { //TODO: Test this is 64 bytes.
 	const char* character{ "🯄" }; ///< A one-character-wide utf8 grapheme. Supports combining characters, non-latin unicode, etc.
-	Color background {};
 	Color foreground {};
+	Color background{};
 	uint8_t attributes {};
 	
 	constexpr static uint_fast8_t bold      { 1 << 0 };
