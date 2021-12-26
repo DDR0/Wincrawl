@@ -1,5 +1,6 @@
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 #include "io.hpp"
 
@@ -15,6 +16,8 @@
 		//Enable UTF-8 debugging in VS output panel as per https://docs.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-outputdebugstringa.
 		DEBUG_EVENT _evt{};
 		WaitForDebugEventEx(&_evt, 1);
+
+		std::cout << "[?25l"; //Turn off cursor.
 
 		//Set the text console itself to UTF-8.
 		return SetConsoleCP(CP_UTF8) & SetConsoleOutputCP(CP_UTF8);
@@ -32,6 +35,8 @@
 
 	#include <unistd.h>
 	#include <termios.h>
+
+	std::cout << "[?25l"; //Turn off cursor.
 
 	struct termios old = { 0 };
 
