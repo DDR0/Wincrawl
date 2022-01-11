@@ -209,7 +209,7 @@ void Screen::CenteredTextPanel::render(Screen::OutputGrid *buffer) {
 /**
  * Screen Layout
  * o-----------o-------o
- * |1↔       0↕|1↔   0↕|
+ * |1↔       3↕|2↔   3↕|
  * |           |       |
  * | viewPanel | memry |
  * |           |       |
@@ -224,30 +224,31 @@ void MainScreen::setSize(size_t x, size_t y) {
 	Screen::setSize(x, y);
 
 	const int gutter = 1;
-	const int promptHeight = 2;
-	const int interiorWidth = x - gutter * 2; int interiorHeight = y - gutter * 2;
+	const int promptHeight = 1;
+	const int interiorWidth = x - gutter * 2;
+	const int interiorHeight = y - gutter * 2;
 	const int viewWidth = interiorWidth * 1 / 3;
-	const int viewHeight = interiorHeight * 1 / 3 < 4 ? interiorHeight - 4 : interiorHeight * 2 / 3;
+	const int viewHeight = interiorHeight * 1 / 4 < 4 ? interiorHeight - 4 : interiorHeight * 3 / 4; //Note the recpripical! Keep enough room for the other panels below.
 
 	viewPanel.setSize(gutter, gutter, viewWidth, viewHeight);
 	memoryPanel.setSize(gutter + viewWidth + gutter, gutter, interiorWidth - viewWidth - gutter, viewHeight);
 	hintsPanel.setSize(gutter, gutter + viewHeight + gutter, interiorWidth, interiorHeight - viewHeight - gutter - promptHeight);
-	promptPanel.setSize(gutter, gutter + viewHeight + gutter, interiorWidth, promptHeight);
+	promptPanel.setSize(gutter, interiorHeight, interiorWidth, promptHeight);
 }
 
 /**
  * Draw the main view, so we can see the world we're in.
  */
-void MainScreen::render() {
+void MainScreen::render(const char* input) {
 	auto out = activeOutputGrid();
 
 	renderBorders(); //Do this first so other panels can overwrite it, "explode" out of their frame.
 	memoryPanel.render(out);
 	hintsPanel.render(out);
-	promptPanel.render(out);
+	renderPromptPanel(input);
 	viewPanel.render(out, view); //Most out-of-bounds panel.
 
-	Screen::render();
+	Screen::render(input);
 }
 
 /**
@@ -280,5 +281,20 @@ void MainScreen::renderBorders()
 
 	for (auto y : iota(viewPanel.rect()->y, viewPanel.rect()->y + viewPanel.rect()->h)) {
 		writeCell(neutralForeground, neutralBackground, "|", y, viewPanel.rect()->w + 1);
+	}
+}
+
+/// Draw the input line, sort of `> command_`-type deal.
+void MainScreen::renderPromptPanel(const char* input) {
+	for (auto x : iota(promptPanel.rect()->x, promptPanel.rect()->x + promptPanel.rect()->w)) {
+		writeCell(neutralForeground, neutralBackground, " ", promptPanel.rect()->y, x);
+	}
+	writeCell(neutralForeground, neutralBackground, ">", promptPanel.rect()->y, 2);
+	writeCell(neutralForeground, neutralBackground, " ", promptPanel.rect()->y, 3);
+	if (strlen(input)) {
+		writeCell(neutralForeground, neutralBackground, input, promptPanel.rect()->y, 4);
+		for (auto x : iota(size_t(5), 4 + strlen(input))) {
+			writeCell(neutralForeground, neutralBackground, "", promptPanel.rect()->y, x);
+		}
 	}
 }

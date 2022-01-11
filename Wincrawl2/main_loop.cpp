@@ -67,7 +67,6 @@ void runMainLoop(std::shared_ptr<Screen>& screen) {
 				inputBuffered = 0;
 				for (int i = 0; i < maxInputBufferLength; i++)
 					inputBuffer[i] = 0;
-				//cerr_ << "\r>         \r> "; //maxInputBufferLength spaces, clear any buffer there and reset cursor to where it should be.
 			}
 			
 			if (!chr_ || chr_ == 4 || stopMainLoop) { //null or ctrl-d
@@ -78,7 +77,7 @@ void runMainLoop(std::shared_ptr<Screen>& screen) {
 				chr = getInputCharAsync::next; //Next char.
 			}
 		}
-		screen->render();
+		screen->render(reinterpret_cast<const char*>(&inputBuffer));
 		std::this_thread::sleep_until(nextFrame);
 	}
 }

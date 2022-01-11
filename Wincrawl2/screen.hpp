@@ -31,7 +31,7 @@ protected:
 	typedef TextCellGrid OutputGrid;
 	static OutputGrid output[2];
 	static inline size_t outputBuffer{ 0 }; //Output buffer 0 or 1. The old buffer is used for diffing.
-	inline OutputGrid* activeOutputGrid() { return &output[outputBuffer]; }
+	OutputGrid* activeOutputGrid() { return &output[outputBuffer]; }
 
 private:
 	void writeOutputToScreen();
@@ -51,15 +51,15 @@ protected:
 		Offset offset {}; ///< Scroll the contents of the panel by x/y, starting from the bottom-left.
 	
 	public:
-		inline Panel(bool autowrap = true) : autowrap(autowrap) {}
-		inline void setAutowrap(bool enabled) { autowrap = enabled; }
-		inline void setSize(int w, int h) { size.x = w, size.y = h; }
-		inline void setSize(int x, int y, int w, int h) {
+		Panel(bool autowrap = true) : autowrap(autowrap) {}
+		void setAutowrap(bool enabled) { autowrap = enabled; }
+		void setSize(int w, int h) { size.x = w, size.y = h; }
+		void setSize(int x, int y, int w, int h) {
 			position.x = x, position.y = y;
 			size.x = w, size.y = h;
 		}
 		struct xywhRect { int x; int y; int w; int h; };
-		inline xywhRect* rect() { return reinterpret_cast<xywhRect*>(&position); }
+		xywhRect* rect() { return reinterpret_cast<xywhRect*>(&position); }
 		
 		void render(OutputGrid*);
 	};
@@ -76,7 +76,7 @@ protected:
 
 	public:
 		const TextBlock text;
-		inline CenteredTextPanel(const TextBlock text) : Panel{ false }, text{ text } {};
+		CenteredTextPanel(const TextBlock text) : Panel{ false }, text{ text } {};
 		void render(OutputGrid*);
 	};
 	
@@ -94,7 +94,7 @@ protected:
 		};
 	};
 
-	inline Screen& writeCell(Color fg, Color bg, const char* character, size_t y, size_t x, int attrs=0) {
+	Screen& writeCell(Color fg, Color bg, const char* character, size_t y, size_t x, int attrs=0) {
 		Cell& cell = (*activeOutputGrid())[y][x];
 		cell.character = character;
 		cell.background = bg;
@@ -110,7 +110,7 @@ public:
 	virtual ~Screen() = default;
 	
 	virtual void setSize(size_t x, size_t y);
-	virtual void inline render() { writeOutputToScreen(); };
+	virtual void render(const char* input) { writeOutputToScreen(); };
 };
 
 class TitleScreen : public Screen {
@@ -125,14 +125,14 @@ public:
 	TitleScreen(Triggers triggers) : Screen(triggers) {
 	}
 	
-	inline void setSize(size_t x, size_t y) override {
+	void setSize(size_t x, size_t y) override {
 		Screen::setSize(x, y);
 		text.setSize(0, 0, x, y);
 	}
 	
-	inline void render() override {
+	void render(const char* input) override {
 		text.render(activeOutputGrid());
-		Screen::render();
+		Screen::render(input);
 	}
 	
 };
@@ -146,20 +146,21 @@ class MainScreen : public Screen {
 	View* view;
 
 	void renderBorders();
+	void renderPromptPanel(const char* input);
 
 public:
 	MainScreen(View* view, Triggers triggers) : Screen(triggers), view(view) {
 	}
 	
 	void setSize(size_t x, size_t y) override;
-	void render() override;
+	void render(const char* input) override;
 };
 
 class DeathScreen : public Screen {
 	Panel main { false };
 	
 public:
-	inline void setSize(size_t x, size_t y) override {
+	void setSize(size_t x, size_t y) override {
 		Screen::setSize(x, y);
 		main.setSize(x, y);
 	}
@@ -174,7 +175,7 @@ class CreditsScreen : public Screen {
 	Panel main { false };
 	
 public:
-	inline void setSize(size_t x, size_t y) {
+	void setSize(size_t x, size_t y) {
 		Screen::setSize(x, y);
 		main.setSize(x, y);
 	}
@@ -188,7 +189,7 @@ class DebugScreen : public Screen {
 	ScrollablePanel main { true };
 	
 public:
-	inline void setSize(size_t x, size_t y) {
+	void setSize(size_t x, size_t y) {
 		Screen::setSize(x, y);
 		main.setSize(x, y);
 	}
