@@ -1,4 +1,5 @@
 ﻿#include <cassert>
+#include <cstring>
 #include <sstream>
 #include <string>
 #include <ranges>

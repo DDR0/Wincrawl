@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "io.hpp"
+#include "seq.hpp"
 
 
 //Each OS we support has different ways to configure their terminal.
@@ -17,7 +18,7 @@
 		DEBUG_EVENT _evt{};
 		WaitForDebugEventEx(&_evt, 1);
 
-		std::cout << "[?25l"; //Turn off cursor.
+		std::cout << seq::hideCursor;
 
 		//Set the text console itself to UTF-8.
 		return SetConsoleCP(CP_UTF8) & SetConsoleOutputCP(CP_UTF8);
@@ -36,11 +37,12 @@
 	#include <unistd.h>
 	#include <termios.h>
 
-	std::cout << "[?25l"; //Turn off cursor.
-
 	struct termios old = { 0 };
 
 	bool setUpConsole() {
+		std::cout << seq::hideCursor;
+		std::cout << seq::reset;
+		
 		errno = 0;
 		if (tcgetattr(0, &old) < 0)
 			perror("tcsetattr()");
@@ -50,14 +52,19 @@
 		old.c_cc[VTIME] = 0;
 		if (tcsetattr(0, TCSANOW, &old) < 0)
 			perror("tcsetattr ICANON");
+		
 		return true;
 	}
 
 	bool tearDownConsole() {
+		std::cout << seq::showCursor;
+		std::cout << seq::reset;
+		
 		old.c_lflag |= ICANON;
 		old.c_lflag |= ECHO;
 		if (tcsetattr(0, TCSADRAIN, &old) < 0)
 			perror("tcsetattr ~ICANON");
+		
 		return true;
 	}
 

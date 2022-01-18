@@ -157,6 +157,7 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, Plane const& plane);
 
 	Tile* getStartingTile();
+	const std::vector<Room>& getRooms();
 	
 	template<typename T=Entity, class ...Args>
 	auto summon(Args... args)

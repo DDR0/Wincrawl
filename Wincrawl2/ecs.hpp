@@ -19,7 +19,7 @@ namespace Event {
 
 	struct Damage: Base {
 		int amount{ 0 };
-		struct type {
+		struct Type {
 			bool physical{};
 			bool blunt{};
 			bool pierce{};
@@ -30,7 +30,7 @@ namespace Event {
 			bool bullet{};
 			bool shockwave{};
 		};
-		type type{};
+		Type type{};
 	};
 	struct DealDamage: Damage {};
 	struct TakeDamage: Damage {};

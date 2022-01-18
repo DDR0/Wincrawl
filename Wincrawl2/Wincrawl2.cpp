@@ -53,9 +53,24 @@ int main() {
 		Entity* avatar{ plane0.summon() };
 		avatar->add<Existance>("@", 0xDDA24EFF);
 		avatar->add<Fragility>(10);
-		auto attack = TakeDamage(avatar->dispatch(DealDamage{}));
+		DealDamage dam{ 10 };
+		auto attack{ TakeDamage(avatar->dispatch(DealDamage{})) };
 		cerr << "Attack amount: " << attack.amount << "\n";
 		plane0.getStartingTile()->occupants.push_back(avatar);
+	}
+	
+	{
+		//Drop in a few enemies as well.
+		using namespace Component;
+		using namespace Event;
+		for (int i=0; i < 3; i++) {
+			Entity* enemy{ plane0.summon() };
+			enemy->add<Existance>("g", 0xDDA24EFF);
+			enemy->add<Fragility>(4);
+			auto attack{ TakeDamage(enemy->dispatch(DealDamage{})) };
+			cerr << "Attack amount: " << attack.amount << "\n";
+			plane0.getStartingTile()->occupants.push_back(enemy);
+		}
 	}
 	
 

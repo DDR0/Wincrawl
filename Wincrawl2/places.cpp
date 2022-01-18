@@ -580,3 +580,7 @@ std::ostream& operator<<(std::ostream& os, Plane const& plane) {
 Tile* Plane::getStartingTile() {
 	return rooms.at(0).seed;
 }
+
+const std::vector<Plane::Room>& Plane::getRooms() {
+	return rooms;
+};

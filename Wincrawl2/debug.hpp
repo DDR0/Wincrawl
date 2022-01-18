@@ -5,6 +5,7 @@
  * output panel instead of std::cerr which doesn't seem to be redirectable.
  */
 
+#include <iostream>
 #include <sstream>
 
 #ifdef _MSC_VER
